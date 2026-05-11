@@ -412,6 +412,42 @@ window.forceLogout = function(){
   <div id="report-body"></div>
 </div>
 
+<div id="page-highschool" style="display:none">
+  <div style="margin-bottom:1rem">
+    <h2 id="hs-title" style="font-size:20px;font-weight:500;margin:0 0 4px">고등부 시트</h2>
+    <p id="hs-subtitle" style="font-size:13px;color:var(--text-secondary);margin:0">학교를 선택하세요</p>
+  </div>
+
+  <div id="hs-school-list">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px"></div>
+  </div>
+
+  <div id="hs-detail" style="display:none">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+      <button id="hs-back" style="padding:8px 12px;font-size:13px;background:transparent;border:0.5px solid var(--border-tertiary);border-radius:var(--radius-md);cursor:pointer;color:var(--text-secondary)"><i class="ti ti-arrow-left"></i> 학교 목록</button>
+      <span style="font-size:12px;color:var(--text-tertiary);margin-left:4px">영역:</span>
+      <button class="area-tab" data-area="textbook">교과서</button>
+      <button class="area-tab" data-area="workbook">부교재</button>
+      <button class="area-tab" data-area="mockexam">모의고사</button>
+    </div>
+
+    <div id="hs-progress-box" style="background:#E1F5EE;border-radius:var(--radius-md);padding:14px 16px;margin-bottom:14px">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <i class="ti ti-book" style="font-size:18px;color:#085041"></i>
+        <span style="font-size:14px;font-weight:600;color:#085041">현재 진도</span>
+        <input type="text" id="hs-progress-input" placeholder="예: 5강 1-6번" style="flex:1;min-width:180px;padding:10px 14px;border:1px solid #5DCAA5;border-radius:var(--radius-md);background:white;font-size:16px;font-weight:600;color:#085041" />
+        <button id="hs-new-progress" style="padding:10px 16px;font-size:13px;background:#1D9E75;color:white;border:none;border-radius:var(--radius-md);cursor:pointer;font-weight:500"><i class="ti ti-arrow-right"></i> 새 진도 시작</button>
+      </div>
+    </div>
+
+    <div id="hs-prev-row" style="display:flex;gap:6px;margin-bottom:14px;align-items:center;flex-wrap:wrap"></div>
+    <div id="hs-more-list" style="display:none;background:var(--bg-primary);border:0.5px solid var(--border-tertiary);border-radius:var(--radius-md);padding:12px 14px;margin-bottom:14px"></div>
+
+    <div id="hs-table-container" style="overflow-x:auto;border:0.5px solid var(--border-tertiary);border-radius:var(--radius-md)"></div>
+    <p style="font-size:11px;color:var(--text-tertiary);margin-top:10px;text-align:center"><i class="ti ti-hand-click"></i> 셀 클릭 → 체크/해제, 메모 칸 클릭 → 텍스트 입력</p>
+  </div>
+</div>
+
 <div id="page-admin" style="display:none">
   <div style="margin-bottom:1rem">
     <h2 style="font-size:18px;font-weight:500;margin:0 0 4px"><i class="ti ti-settings"></i> Admin</h2>
