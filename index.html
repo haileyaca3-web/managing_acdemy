@@ -238,34 +238,28 @@ table.schedule{border-collapse:collapse;width:100%;min-width:760px;font-size:13p
 </head>
 <body>
 <script>
-// 2초 후 무조건 로그인 화면 표시 (Firebase 연결 안 돼도)
+// 3초 후 Firebase 연결 안 돼도 로그인 화면은 무조건 뜨게
 setTimeout(function(){
   try{
     var loading = document.getElementById('initial-loading');
     var login = document.getElementById('login-screen');
     var main = document.getElementById('main-content');
     
-    // 이미 로그인된 사용자가 있으면 메인 화면, 없으면 로그인 화면
-    var savedUser = localStorage.getItem('currentUser');
-    var validUsers = ['Hailey','Eden','Ella','Bianca'];
-    
-    if(loading) loading.style.display = 'none';
-    
-    if(savedUser && validUsers.indexOf(savedUser) >= 0){
-      // 이미 로그인된 상태 - 메인 화면 표시 시도
-      if(main && main.style.display === 'none'){
-        main.style.display = 'block';
-        if(login) login.style.display = 'none';
-      }
-    } else {
-      // 로그인 안 됨 - 로그인 화면 표시
-      if(login) login.style.display = 'block';
-      if(main) main.style.display = 'none';
+    // 메인 컨텐츠가 안 보이면 (= 아직 로그인 안 됨) 로그인 화면 띄우기
+    if(main && (main.style.display === 'none' || main.style.display === '')){
+      if(loading) loading.style.display = 'none';
+      if(login && login.style.display === 'none') login.style.display = 'block';
     }
   } catch(e){
     console.error('Failsafe error:', e);
   }
-}, 2000);
+}, 3000);
+
+// 로그아웃 함수에서 localStorage 확실히 비우기
+window.forceLogout = function(){
+  localStorage.removeItem('currentUser');
+  location.reload();
+};
 </script>
 <div class="app">
 <div id="initial-loading" class="loading-msg">
