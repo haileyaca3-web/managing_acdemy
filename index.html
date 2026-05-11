@@ -172,6 +172,9 @@ table.schedule{border-collapse:collapse;width:100%;min-width:760px;font-size:13p
 
 .report-section{background:var(--bg-primary);border:0.5px solid var(--border-tertiary);border-radius:var(--radius-lg);padding:14px 16px;margin-bottom:10px}
 .report-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;padding-bottom:8px;border-bottom:0.5px solid var(--border-tertiary)}
+.student-report-line{display:flex;align-items:flex-start;gap:8px;padding:8px 6px;font-size:14px;cursor:pointer;border-radius:var(--radius-md);transition:background 0.15s}
+.student-report-line:hover{background:var(--bg-secondary)}
+.student-name-clickable{font-weight:600;min-width:80px;flex-shrink:0;color:var(--text-info);display:flex;align-items:center;gap:4px}
 
 
 .mgr-notes-row{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-bottom:1rem}
@@ -221,12 +224,64 @@ table.schedule{border-collapse:collapse;width:100%;min-width:760px;font-size:13p
   .check-box .check-icon{font-size:16px}
   .todo-check{width:22px;height:22px}
 }
+
+#login-screen{box-shadow:none}
+#login-screen select,#login-screen input{font-size:15px;border:1px solid var(--border-tertiary);border-radius:var(--radius-md);background:var(--bg-primary);color:var(--text-primary)}
 </style>
 </head>
 <body>
+<script>
+// 2초 후 무조건 로그인 화면 표시 (Firebase 연결 안 돼도)
+setTimeout(function(){
+  try{
+    var loading = document.getElementById('initial-loading');
+    var login = document.getElementById('login-screen');
+    var main = document.getElementById('main-content');
+    
+    // 이미 로그인된 사용자가 있으면 메인 화면, 없으면 로그인 화면
+    var savedUser = localStorage.getItem('currentUser');
+    var validUsers = ['Hailey','Eden','Ella','Bianca'];
+    
+    if(loading) loading.style.display = 'none';
+    
+    if(savedUser && validUsers.indexOf(savedUser) >= 0){
+      // 이미 로그인된 상태 - 메인 화면 표시 시도
+      if(main && main.style.display === 'none'){
+        main.style.display = 'block';
+        if(login) login.style.display = 'none';
+      }
+    } else {
+      // 로그인 안 됨 - 로그인 화면 표시
+      if(login) login.style.display = 'block';
+      if(main) main.style.display = 'none';
+    }
+  } catch(e){
+    console.error('Failsafe error:', e);
+  }
+}, 2000);
+</script>
 <div class="app">
 <div id="initial-loading" class="loading-msg">
 <i class="ti ti-loader"></i> Firebase 연결 중...
+</div>
+
+<div id="login-screen" style="display:none;max-width:340px;margin:60px auto;padding:32px 24px;background:var(--bg-primary);border:0.5px solid var(--border-tertiary);border-radius:var(--radius-lg)">
+  <div style="text-align:center;margin-bottom:24px">
+    <i class="ti ti-school" style="font-size:36px;color:var(--text-info)"></i>
+    <h2 style="font-size:20px;font-weight:500;margin:10px 0 4px">학원 주간 보드</h2>
+    <p style="font-size:12px;color:var(--text-tertiary);margin:0">선생님 로그인</p>
+  </div>
+  <label style="display:block;font-size:13px;color:var(--text-secondary);margin-bottom:6px">이름</label>
+  <select id="login-name" style="width:100%;margin-bottom:14px;padding:10px 12px;font-size:15px">
+    <option value="Hailey">Hailey</option>
+    <option value="Eden">Eden</option>
+    <option value="Ella">Ella</option>
+    <option value="Bianca">Bianca</option>
+  </select>
+  <label style="display:block;font-size:13px;color:var(--text-secondary);margin-bottom:6px">비밀번호</label>
+  <input type="password" id="login-pw" placeholder="1234" onkeydown="if(event.key==='Enter' && window.doLogin) window.doLogin()" style="width:100%;margin-bottom:18px;padding:10px 12px;font-size:15px" />
+  <button id="login-btn" type="button" onclick="window.doLogin && window.doLogin()" style="width:100%;padding:12px;background:var(--text-info);color:white;border:none;border-radius:var(--radius-md);font-size:15px;font-weight:600;cursor:pointer">로그인</button>
+  <p id="login-error" style="display:none;color:var(--text-danger);font-size:12px;text-align:center;margin:10px 0 0">비밀번호가 틀렸습니다</p>
 </div>
 
 <div id="main-content" style="display:none">
@@ -238,18 +293,17 @@ table.schedule{border-collapse:collapse;width:100%;min-width:760px;font-size:13p
 
 <p style="font-size:15px;color:var(--text-secondary);margin:0 0 12px" id="week-label">이번 주</p>
 
-<div class="who-am-i">
-  <span style="color:var(--text-tertiary)">내 이름:</span>
-  <button class="who-btn" data-who="Hailey">Hailey</button>
-  <button class="who-btn" data-who="Eden">Eden</button>
-  <button class="who-btn" data-who="Ella">Ella</button>
-  <button class="who-btn" data-who="Bianca">Bianca</button>
+<div class="who-am-i" id="who-am-i-bar">
+  <span style="color:var(--text-tertiary)">로그인:</span>
+  <span id="current-user-display" style="font-weight:600;color:var(--text-info);font-size:15px">Hailey</span>
+  <button id="btn-logout" type="button" onclick="window.doLogout && window.doLogout()" style="margin-left:auto;padding:5px 10px;font-size:12px;background:transparent;border:0.5px solid var(--border-tertiary);border-radius:var(--radius-md);cursor:pointer;color:var(--text-secondary)"><i class="ti ti-logout"></i> 로그아웃</button>
 </div>
 
-<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin-bottom:1rem">
-  <button class="page-tab active" data-page="main"><i class="ti ti-calendar-week"></i> 보드</button>
-  <button class="page-tab" data-page="manager"><i class="ti ti-clipboard-list"></i> 매니저</button>
-  <button class="page-tab" data-page="report"><i class="ti ti-file-text"></i> 주간보고</button>
+<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:1rem">
+  <button class="page-tab active" data-page="main"><i class="ti ti-calendar-week"></i> 중등부</button>
+  <button class="page-tab" data-page="highschool"><i class="ti ti-school"></i> 고등부</button>
+  <button class="page-tab" data-page="manager-eden"><i class="ti ti-user-circle"></i> Eden</button>
+  <button class="page-tab" data-page="manager-ella"><i class="ti ti-user-circle"></i> Ella</button>
   <button class="page-tab" data-page="admin"><i class="ti ti-settings"></i> Admin</button>
 </div>
 
@@ -266,32 +320,28 @@ table.schedule{border-collapse:collapse;width:100%;min-width:760px;font-size:13p
   <div class="mgr-notes-row">
     <div class="mgr-note-box mgr-note-eden">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-        <i class="ti ti-message-circle" style="color:#085041"></i>
-        <p style="font-size:14px;font-weight:600;margin:0;color:#085041">Eden께 전달</p>
+        <p style="font-size:14px;font-weight:600;margin:0;color:#085041">Eden <i class="ti ti-message-circle" style="color:#085041"></i></p>
         <button id="btn-edit-mnote-eden" class="mnote-edit-btn"><i class="ti ti-edit"></i></button>
       </div>
       <p id="mnote-eden-text" class="mgr-note-text">전달사항 없음</p>
     </div>
     <div class="mgr-note-box mgr-note-ella">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-        <i class="ti ti-message-circle" style="color:#4B1528"></i>
-        <p style="font-size:14px;font-weight:600;margin:0;color:#4B1528">Ella께 전달</p>
+        <p style="font-size:14px;font-weight:600;margin:0;color:#4B1528">Ella <i class="ti ti-message-circle" style="color:#4B1528"></i></p>
         <button id="btn-edit-mnote-ella" class="mnote-edit-btn"><i class="ti ti-edit"></i></button>
       </div>
       <p id="mnote-ella-text" class="mgr-note-text">전달사항 없음</p>
     </div>
     <div class="mgr-note-box mgr-note-bianca">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-        <i class="ti ti-message-circle" style="color:#633806"></i>
-        <p style="font-size:14px;font-weight:600;margin:0;color:#633806">Bianca께 전달</p>
+        <p style="font-size:14px;font-weight:600;margin:0;color:#633806">Bianca <i class="ti ti-message-circle" style="color:#633806"></i></p>
         <button id="btn-edit-mnote-bianca" class="mnote-edit-btn"><i class="ti ti-edit"></i></button>
       </div>
       <p id="mnote-bianca-text" class="mgr-note-text">전달사항 없음</p>
     </div>
     <div class="mgr-note-box mgr-note-hailey">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-        <i class="ti ti-message-circle" style="color:#26215C"></i>
-        <p style="font-size:14px;font-weight:600;margin:0;color:#26215C">Hailey께 전달</p>
+        <p style="font-size:14px;font-weight:600;margin:0;color:#26215C">Hailey <i class="ti ti-message-circle" style="color:#26215C"></i></p>
         <button id="btn-edit-mnote-hailey" class="mnote-edit-btn"><i class="ti ti-edit"></i></button>
       </div>
       <p id="mnote-hailey-text" class="mgr-note-text">전달사항 없음</p>
@@ -333,8 +383,8 @@ table.schedule{border-collapse:collapse;width:100%;min-width:760px;font-size:13p
 
 <div id="page-manager" style="display:none">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-    <h2 style="font-size:16px;font-weight:500;margin:0"><i class="ti ti-clipboard-list"></i> 매니저 확인 보드</h2>
-    <div style="display:flex;gap:6px">
+    <h2 style="font-size:16px;font-weight:500;margin:0" id="manager-board-title"><i class="ti ti-clipboard-list"></i> 매니저 확인 보드</h2>
+    <div style="display:none">
       <button class="mgr-tab active" data-mgr="middle">중등 (Eden)</button>
       <button class="mgr-tab" data-mgr="high">고등 (Ella)</button>
     </div>
@@ -346,13 +396,13 @@ table.schedule{border-collapse:collapse;width:100%;min-width:760px;font-size:13p
     <span id="progress-text" style="margin-left:auto;font-size:11px;color:var(--text-tertiary)">0 / 0</span>
   </div>
   <div id="manager-board" style="background:var(--bg-secondary);border-radius:var(--radius-lg);padding:12px"></div>
-  <button id="btn-copy-mgr" style="width:100%;padding:8px;margin-top:8px;font-size:12px;background:var(--bg-primary);border:0.5px solid var(--border-tertiary);border-radius:var(--radius-md);cursor:pointer;color:var(--text-primary)"><i class="ti ti-clipboard"></i> 카톡으로 정리 복사</button>
+  
 </div>
 
-<div id="page-report" style="display:none">
+<div id="page-report" style="display:none;margin-top:2rem">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
     <h2 style="font-size:16px;font-weight:500;margin:0"><i class="ti ti-file-text"></i> 주간 보고서</h2>
-    <div style="display:flex;gap:6px">
+    <div style="display:none">
       <button class="report-tab mgr-tab active" data-rep="middle">중등부</button>
       <button class="report-tab mgr-tab" data-rep="high">고등부</button>
     </div>
@@ -478,7 +528,18 @@ let mgrFilter = 'open';
 let reportTab = 'middle';
 let adminTab = 'students';
 let adminSelectedClass = null;
+window.USERS = {
+  'Hailey': {pw:'1234', perms:{middle:true,high:true,mgrEden:true,mgrElla:true}},
+  'Eden':   {pw:'1234', perms:{middle:true,high:false,mgrEden:true,mgrElla:false}},
+  'Ella':   {pw:'1234', perms:{middle:false,high:true,mgrEden:false,mgrElla:true}},
+  'Bianca': {pw:'1234', perms:{middle:true,high:true,mgrEden:true,mgrElla:true}}
+};
+const USERS = window.USERS;
+
 let myName = localStorage.getItem('myName') || 'Hailey';
+let currentUser = localStorage.getItem('currentUser') || null;
+window.myName = myName;
+window.currentUser = currentUser;
 
 function getPersonalMemoKey(){return 'personalMemo_'+myName}
 function loadPersonalMemo(){
@@ -562,9 +623,18 @@ onValue(ref(db, settingsPath), (snap) => {
   if(data.activityLog) activityLog = data.activityLog;
   
   document.getElementById('initial-loading').style.display = 'none';
-  document.getElementById('main-content').style.display = 'block';
   
-  renderAll();
+  if(currentUser && USERS[currentUser]){
+    document.getElementById('main-content').style.display = 'block';
+    document.getElementById('login-screen').style.display = 'none';
+    myName = currentUser;
+    localStorage.setItem('myName', myName);
+    applyPermissions();
+    renderAll();
+  } else {
+    document.getElementById('login-screen').style.display = 'block';
+    document.getElementById('main-content').style.display = 'none';
+  }
 });
 
 onValue(ref(db, dataPath), (snap) => {
@@ -1093,8 +1163,8 @@ function renderReport(){
 </div>`;
     Object.keys(studentMap).forEach(name=>{
       const issues=studentMap[name];
-      html+=`<div style="display:flex;align-items:flex-start;gap:8px;padding:5px 0;font-size:13px">
-<span style="font-weight:500;min-width:62px;flex-shrink:0">${escapeHtml(name)}</span>
+      html+=`<div class="student-report-line" data-class="${escapeHtml(className)}" data-name="${escapeHtml(name)}" title="클릭하면 학부모용 카톡 복사">
+<span class="student-name-clickable">${escapeHtml(name)} <i class="ti ti-copy" style="font-size:12px;opacity:0.5"></i></span>
 <div style="flex:1">`;
       issues.forEach(m=>{
         const t=TAG_LABELS[m.category]||TAG_LABELS.etc;
@@ -1106,6 +1176,102 @@ function renderReport(){
     html+=`</div>`;
   });
   body.innerHTML=html;
+  
+  body.querySelectorAll('.student-report-line').forEach(el => {
+    el.addEventListener('click', () => {
+      const cls = el.dataset.class;
+      const name = el.dataset.name;
+      copyStudentForParent(cls, name);
+    });
+  });
+}
+
+function copyStudentForParent(className, studentName){
+  const items=getAllItems();
+  const studentItems = items.filter(it => it.cell.label===className && it.memo.name===studentName);
+  if(studentItems.length===0){alert('이 학생의 기록이 없습니다.');return}
+  
+  const m=monday;
+  const month = m.getMonth()+1;
+  const day = m.getDate();
+  const weekNum = Math.ceil(day/7);
+  const weekKor = ['첫째','둘째','셋째','넷째','다섯째'][weekNum-1] || `${weekNum}번째`;
+  const yearShort = String(m.getFullYear()).slice(-2);
+  const dateLabel = `${yearShort}년 ${month}월 ${weekKor}주`;
+  
+  const byCategory = {retest:[], homework:[], absent:[], vocab:[], etc:[]};
+  studentItems.forEach(it => {
+    const dayIdx = Math.floor(it.cell.col/2);
+    const dayName = DAY_KO[dayIdx+1];
+    byCategory[it.memo.category]?.push({day:dayName, detail:it.memo.detail, dayIdx});
+  });
+  
+  const lines = [`[단어시험 결과]`];
+  lines.push(`이름: ${studentName}`);
+  lines.push(`날짜: ${dateLabel}`);
+  
+  const catOrder = [
+    ['retest','재시험'],
+    ['homework','숙제 미제출'],
+    ['absent', null],
+    ['vocab','단어추가'],
+    ['etc','기타']
+  ];
+  
+  catOrder.forEach(([key, customLabel]) => {
+    const arr = byCategory[key];
+    if(!arr || arr.length===0) return;
+    
+    if(key === 'absent'){
+      const subGroups = {};
+      arr.forEach(item => {
+        let sub = '결석';
+        if(item.detail){
+          if(item.detail.includes('지각')) sub='지각';
+          else if(item.detail.includes('조퇴')) sub='조퇴';
+          else if(item.detail.includes('결석')) sub='결석';
+          else sub = item.detail.split(' - ')[0] || '결석';
+        }
+        if(!subGroups[sub]) subGroups[sub] = [];
+        subGroups[sub].push(item.day);
+      });
+      Object.keys(subGroups).forEach(sub => {
+        lines.push(`${sub}: ${subGroups[sub].join(', ')}`);
+      });
+    } else if(key === 'retest'){
+      const subGroups = {};
+      arr.forEach(item => {
+        const subType = item.detail ? item.detail.split(' - ')[0] : '';
+        const key2 = subType || '재시험';
+        if(!subGroups[key2]) subGroups[key2] = [];
+        subGroups[key2].push(item.day);
+      });
+      const allDays = Object.values(subGroups).flat();
+      if(Object.keys(subGroups).length===1 && Object.keys(subGroups)[0]==='재시험'){
+        lines.push(`재시험: ${allDays.join(', ')}`);
+      } else {
+        Object.keys(subGroups).forEach(sub => {
+          lines.push(`${sub} 재시험: ${subGroups[sub].join(', ')}`);
+        });
+      }
+    } else {
+      const label = customLabel || '기타';
+      const days = arr.map(it => it.day).join(', ');
+      const details = arr.filter(it => it.detail).map(it => it.detail).join(', ');
+      if(details){
+        lines.push(`${label}: ${days} (${details})`);
+      } else {
+        lines.push(`${label}: ${days}`);
+      }
+    }
+  });
+  
+  const text = lines.join('\n');
+  navigator.clipboard.writeText(text).then(()=>{
+    alert(`${studentName} 학생 메시지 복사 완료!\n\n${text}`);
+  }).catch(()=>{
+    prompt('복사하지 못했어요. 직접 복사하세요:', text);
+  });
 }
 
 function copyReport(){
@@ -1287,12 +1453,40 @@ function renderActivityLog(){
 function switchPage(page){
   currentPage=page;
   document.querySelectorAll('.page-tab').forEach(b=>b.classList.toggle('active',b.dataset.page===page));
-  ['main','manager','report','admin'].forEach(p=>{
-    document.getElementById('page-'+p).style.display=(p===page)?'block':'none';
-  });
-  if(page==='manager')renderManagerBoard();
-  if(page==='report')renderReport();
+  
+  document.getElementById('page-main').style.display = (page==='main')?'block':'none';
+  const hsEl = document.getElementById('page-highschool');
+  if(hsEl) hsEl.style.display = (page==='highschool')?'block':'none';
+  document.getElementById('page-admin').style.display = (page==='admin')?'block':'none';
+  
+  const mgrPage = document.getElementById('page-manager');
+  const repPage = document.getElementById('page-report');
+  
+  if(page==='manager-eden'){
+    mgrTab = 'middle';
+    reportTab = 'middle';
+    mgrPage.style.display = 'block';
+    repPage.style.display = 'block';
+    document.querySelectorAll('.mgr-tab[data-mgr]').forEach(b=>b.classList.toggle('active', b.dataset.mgr==='middle'));
+    document.querySelectorAll('.report-tab').forEach(b=>b.classList.toggle('active', b.dataset.rep==='middle'));
+    renderManagerBoard();
+    renderReport();
+  } else if(page==='manager-ella'){
+    mgrTab = 'high';
+    reportTab = 'high';
+    mgrPage.style.display = 'block';
+    repPage.style.display = 'block';
+    document.querySelectorAll('.mgr-tab[data-mgr]').forEach(b=>b.classList.toggle('active', b.dataset.mgr==='high'));
+    document.querySelectorAll('.report-tab').forEach(b=>b.classList.toggle('active', b.dataset.rep==='high'));
+    renderManagerBoard();
+    renderReport();
+  } else {
+    mgrPage.style.display = 'none';
+    repPage.style.display = 'none';
+  }
+  
   if(page==='admin')switchAdminTab(adminTab);
+  if(page==='highschool')renderHsList();
 }
 
 function switchAdminTab(tab){
@@ -1330,9 +1524,9 @@ document.querySelectorAll('.filter-chk').forEach(btn=>{
   });
 });
 
-document.getElementById('btn-copy-mgr').addEventListener('click',copyManager);
-document.getElementById('btn-copy-report').addEventListener('click',copyReport);
-document.getElementById('btn-edit-notice').addEventListener('click',()=>{
+
+var __el_btn_copy_report = document.getElementById('btn-copy-report'); if(__el_btn_copy_report) __el_btn_copy_report.addEventListener('click',copyReport);
+var __el_btn_edit_notice = document.getElementById('btn-edit-notice'); if(__el_btn_edit_notice) __el_btn_edit_notice.addEventListener('click',()=>{
   const cur=notice;
   const next=prompt('전체 공지사항:',cur);
   if(next!==null){
@@ -1340,24 +1534,24 @@ document.getElementById('btn-edit-notice').addEventListener('click',()=>{
   }
 });
 
-document.getElementById('btn-edit-mnote-eden').addEventListener('click',()=>{
-  const next=prompt('Eden께 전달할 내용:',mgrNoteEden);
+var __el_btn_edit_mnote_eden = document.getElementById('btn-edit-mnote-eden'); if(__el_btn_edit_mnote_eden) __el_btn_edit_mnote_eden.addEventListener('click',()=>{
+  const next=prompt('Eden 전달 내용:',mgrNoteEden);
   if(next!==null){fbSet(`${dataPath}/mgrNoteEden`,next)}
 });
-document.getElementById('btn-edit-mnote-ella').addEventListener('click',()=>{
-  const next=prompt('Ella께 전달할 내용:',mgrNoteElla);
+var __el_btn_edit_mnote_ella = document.getElementById('btn-edit-mnote-ella'); if(__el_btn_edit_mnote_ella) __el_btn_edit_mnote_ella.addEventListener('click',()=>{
+  const next=prompt('Ella 전달 내용:',mgrNoteElla);
   if(next!==null){fbSet(`${dataPath}/mgrNoteElla`,next)}
 });
-document.getElementById('btn-edit-mnote-bianca').addEventListener('click',()=>{
-  const next=prompt('Bianca께 전달할 내용:',mgrNoteBianca);
+var __el_btn_edit_mnote_bianca = document.getElementById('btn-edit-mnote-bianca'); if(__el_btn_edit_mnote_bianca) __el_btn_edit_mnote_bianca.addEventListener('click',()=>{
+  const next=prompt('Bianca 전달 내용:',mgrNoteBianca);
   if(next!==null){fbSet(`${dataPath}/mgrNoteBianca`,next)}
 });
-document.getElementById('btn-edit-mnote-hailey').addEventListener('click',()=>{
-  const next=prompt('Hailey께 전달할 내용:',mgrNoteHailey);
+var __el_btn_edit_mnote_hailey = document.getElementById('btn-edit-mnote-hailey'); if(__el_btn_edit_mnote_hailey) __el_btn_edit_mnote_hailey.addEventListener('click',()=>{
+  const next=prompt('Hailey 전달 내용:',mgrNoteHailey);
   if(next!==null){fbSet(`${dataPath}/mgrNoteHailey`,next)}
 });
 
-document.getElementById('btn-edit-personal').addEventListener('click',()=>{
+var __el_btn_edit_personal = document.getElementById('btn-edit-personal'); if(__el_btn_edit_personal) __el_btn_edit_personal.addEventListener('click',()=>{
   const cur=localStorage.getItem(getPersonalMemoKey())||'';
   const next=prompt(`${myName}의 개인 메모 (나만 봄):`,cur);
   if(next!==null){
@@ -1365,21 +1559,11 @@ document.getElementById('btn-edit-personal').addEventListener('click',()=>{
     loadPersonalMemo();
   }
 });
-document.getElementById('btn-clear-personal').addEventListener('click',()=>{
+var __el_btn_clear_personal = document.getElementById('btn-clear-personal'); if(__el_btn_clear_personal) __el_btn_clear_personal.addEventListener('click',()=>{
   if(confirm('개인 메모를 모두 지울까요?')){
     localStorage.removeItem(getPersonalMemoKey());
     loadPersonalMemo();
   }
-});
-
-document.querySelectorAll('.who-btn').forEach(btn=>{
-  btn.classList.toggle('active',btn.dataset.who===myName);
-  btn.addEventListener('click',()=>{
-    myName=btn.dataset.who;
-    localStorage.setItem('myName',myName);
-    document.querySelectorAll('.who-btn').forEach(b=>b.classList.toggle('active',b.dataset.who===myName));
-    loadPersonalMemo();
-  });
 });
 
 setTimeout(()=>loadPersonalMemo(),100);
@@ -1395,6 +1579,355 @@ setTimeout(()=>{
     });
   }
 },3000);
+
+
+function renderHsList(){
+  document.getElementById('hs-school-list').style.display='block';
+  document.getElementById('hs-detail').style.display='none';
+  document.getElementById('hs-title').textContent='고등부 시트';
+  document.getElementById('hs-subtitle').textContent='학교를 선택하세요';
+  hsCurrentSchool = null;
+  
+  const container = document.getElementById('hs-school-list').querySelector('div');
+  let html='';
+  const areaColorMap = {
+    textbook: {bg:'#EEEDFE', text:'#3C3489', icon:'ti-book'},
+    workbook: {bg:'#E1F5EE', text:'#085041', icon:'ti-books'},
+    mockexam: {bg:'#FAEEDA', text:'#633806', icon:'ti-file-text'}
+  };
+  HS_SCHOOLS.forEach(school=>{
+    const students = hsStudents[school] || [];
+    const count = students.length;
+    const lastArea = (hsLastSelections[school]||{}).area;
+    const lastProg = (hsLastSelections[school]||{}).progress;
+    let badge='';
+    if(lastArea && lastProg){
+      const c = areaColorMap[lastArea];
+      const areaName = HS_AREAS[lastArea];
+      badge = `<div style="font-size:11px;padding:2px 8px;border-radius:999px;display:inline-flex;align-items:center;gap:4px;font-weight:600;margin-top:6px;margin-bottom:4px;background:${c.bg};color:${c.text}"><i class="ti ${c.icon}"></i> ${areaName}</div>
+      <div style="font-size:12px;color:var(--text-secondary);font-weight:500;line-height:1.3">${escapeHtml(lastProg)}</div>`;
+    } else {
+      badge = `<div style="font-size:11px;color:var(--text-tertiary);font-style:italic;margin-top:6px">아직 시작 안 함</div>`;
+    }
+    html+=`<div class="school-card-v2" data-school="${escapeHtml(school)}">
+      <div class="school-name">${escapeHtml(school)}</div>
+      <div class="school-count">${count}명</div>
+      ${badge}
+    </div>`;
+  });
+  container.innerHTML=html;
+  container.querySelectorAll('.school-card-v2').forEach(card=>{
+    card.addEventListener('click',()=>{
+      hsCurrentSchool = card.dataset.school;
+      const last = hsLastSelections[hsCurrentSchool] || {};
+      hsCurrentArea = last.area || 'workbook';
+      hsCurrentProgress = last.progress || null;
+      renderHsDetail();
+    });
+  });
+}
+
+function renderHsDetail(){
+  document.getElementById('hs-school-list').style.display='none';
+  document.getElementById('hs-detail').style.display='block';
+  document.getElementById('hs-title').textContent = hsCurrentSchool + ' - ' + HS_AREAS[hsCurrentArea];
+  document.getElementById('hs-subtitle').textContent = `학생 ${(hsStudents[hsCurrentSchool]||[]).length}명`;
+  
+  document.querySelectorAll('.area-tab').forEach(btn=>{
+    btn.classList.toggle('active', btn.dataset.area===hsCurrentArea);
+  });
+  
+  const colors = HS_AREA_COLORS[hsCurrentArea];
+  const progressBox = document.getElementById('hs-progress-box');
+  progressBox.style.background = colors.bg;
+  const icon = progressBox.querySelector('i.ti');
+  icon.className = 'ti ' + colors.icon;
+  icon.style.color = colors.text;
+  const label = progressBox.querySelector('span');
+  label.style.color = colors.text;
+  const input = document.getElementById('hs-progress-input');
+  input.style.border = '1px solid ' + colors.border;
+  input.style.color = colors.text;
+  input.value = hsCurrentProgress || '';
+  
+  const areaData = (hsData[hsCurrentSchool] || {})[hsCurrentArea] || {};
+  const progressList = Object.keys(areaData).map(p => ({
+    name: p,
+    createdAt: areaData[p].createdAt || 0
+  })).sort((a,b) => b.createdAt - a.createdAt);
+  
+  const prevRow = document.getElementById('hs-prev-row');
+  let prevHtml = '<span style="font-size:12px;color:var(--text-tertiary)">최근 진도:</span>';
+  
+  if(progressList.length===0){
+    prevHtml += '<span style="font-size:12px;color:var(--text-tertiary);font-style:italic">아직 진도가 없습니다</span>';
+  } else {
+    const recent = progressList.slice(0, 3);
+    recent.forEach(p => {
+      const activeCls = (p.name === hsCurrentProgress) ? 'active' : '';
+      prevHtml += `<button class="prev-pill ${activeCls}" data-progress="${escapeHtml(p.name)}">${escapeHtml(p.name)}</button>`;
+    });
+    if(progressList.length > 3){
+      prevHtml += `<button id="hs-btn-more" class="prev-pill more">더보기 (${progressList.length-3}개) <i class="ti ti-chevron-down" style="font-size:11px"></i></button>`;
+    }
+  }
+  prevRow.innerHTML = prevHtml;
+  
+  prevRow.querySelectorAll('.prev-pill:not(.more)').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      hsCurrentProgress = btn.dataset.progress;
+      renderHsDetail();
+    });
+  });
+  
+  const moreBtn = document.getElementById('hs-btn-more');
+  if(moreBtn){
+    moreBtn.addEventListener('click',()=>{
+      renderHsMoreList(progressList.slice(3));
+    });
+  }
+  
+  document.getElementById('hs-more-list').style.display='none';
+  
+  renderHsTable();
+}
+
+function renderHsMoreList(items){
+  const box = document.getElementById('hs-more-list');
+  let html = `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+    <p style="font-size:13px;font-weight:500;margin:0">이전 진도 (${items.length}개)</p>
+    <button id="hs-btn-close-more" style="padding:2px 8px;font-size:11px;background:transparent;border:0.5px solid var(--border-tertiary);border-radius:var(--radius-md);cursor:pointer;color:var(--text-secondary)"><i class="ti ti-x"></i> 닫기</button>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:4px">`;
+  items.forEach(p => {
+    const d = new Date(p.createdAt);
+    const dateStr = `${d.getMonth()+1}/${d.getDate()} 작성`;
+    html += `<div class="prev-row">
+      <span class="prev-row-name">${escapeHtml(p.name)}</span>
+      <span class="prev-row-date">${dateStr}</span>
+      <button class="prev-row-btn" data-progress="${escapeHtml(p.name)}">보기 <i class="ti ti-arrow-right" style="font-size:11px"></i></button>
+    </div>`;
+  });
+  html += `</div>`;
+  box.innerHTML = html;
+  box.style.display='block';
+  
+  document.getElementById('hs-btn-close-more').addEventListener('click',()=>{
+    box.style.display='none';
+  });
+  box.querySelectorAll('.prev-row-btn').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      hsCurrentProgress = btn.dataset.progress;
+      box.style.display='none';
+      renderHsDetail();
+    });
+  });
+}
+
+function renderHsTable(){
+  const container = document.getElementById('hs-table-container');
+  const students = hsStudents[hsCurrentSchool] || [];
+  
+  if(!hsCurrentProgress){
+    container.innerHTML = `<div style="padding:2rem;text-align:center;color:var(--text-tertiary);font-size:13px">위에 진도 이름을 입력하고 "새 진도 시작"을 눌러주세요.</div>`;
+    return;
+  }
+  
+  const progressData = (((hsData[hsCurrentSchool]||{})[hsCurrentArea]||{})[hsCurrentProgress]||{}).students || {};
+  
+  let html = '<table class="check-table"><thead><tr>';
+  html += '<th rowspan="2" class="th-name">학생</th>';
+  HS_GROUPS.forEach(g => {
+    html += `<th colspan="${g.cols}" class="th-group" style="background:${g.bg};color:${g.text}">${g.label}</th>`;
+  });
+  html += '<th class="th-group" style="background:#FAECE7;color:#712B13">기타메모</th>';
+  html += '</tr><tr>';
+  HS_CHECK_COLS.forEach(c => {
+    html += `<th class="th-sub">${c.label}</th>`;
+  });
+  html += '<th class="th-sub">메모</th></tr></thead><tbody>';
+  
+  if(students.length === 0){
+    html += `<tr><td colspan="${HS_CHECK_COLS.length+2}" style="padding:20px;text-align:center;color:var(--text-tertiary);font-size:12px">학생이 없습니다. Admin에서 추가하세요.</td></tr>`;
+  } else {
+    students.forEach(name => {
+      const studentData = progressData[name] || {};
+      html += `<tr><td class="td-name" data-student="${escapeHtml(name)}">${escapeHtml(name)}</td>`;
+      HS_CHECK_COLS.forEach(c => {
+        const done = studentData[c.key];
+        html += `<td><span class="check ${done?'done':''}" data-student="${escapeHtml(name)}" data-col="${c.key}">${done?'<i class="ti ti-check"></i>':''}</span></td>`;
+      });
+      const memo = studentData.memo || '';
+      html += `<td class="td-memo" data-student="${escapeHtml(name)}">${escapeHtml(memo)||'<span style="color:var(--text-tertiary);font-style:italic">클릭해서 입력</span>'}</td>`;
+      html += `</tr>`;
+    });
+  }
+  html += '</tbody></table>';
+  container.innerHTML = html;
+  
+  container.querySelectorAll('.check').forEach(el => {
+    el.addEventListener('click',()=>{
+      const student = el.dataset.student;
+      const col = el.dataset.col;
+      const path = `highschool/${hsCurrentSchool}/${hsCurrentArea}/${hsCurrentProgress}/students/${student}/${col}`;
+      const currentValue = ((((hsData[hsCurrentSchool]||{})[hsCurrentArea]||{})[hsCurrentProgress]||{}).students||{})[student]?.[col] || false;
+      fbSet(path, !currentValue);
+    });
+  });
+  
+  container.querySelectorAll('.td-memo').forEach(el => {
+    el.addEventListener('click',()=>{
+      const student = el.dataset.student;
+      const currentMemo = ((((hsData[hsCurrentSchool]||{})[hsCurrentArea]||{})[hsCurrentProgress]||{}).students||{})[student]?.memo || '';
+      const next = prompt(`${student} 학생 메모:`, currentMemo);
+      if(next !== null){
+        fbSet(`highschool/${hsCurrentSchool}/${hsCurrentArea}/${hsCurrentProgress}/students/${student}/memo`, next.trim());
+      }
+    });
+  });
+}
+
+(function(){var el=document.getElementById('hs-back');if(el)el.addEventListener('click',function(){renderHsList();});})();
+
+document.querySelectorAll('.area-tab').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    hsCurrentArea = btn.dataset.area;
+    const last = hsLastSelections[hsCurrentSchool] || {};
+    hsLastSelections[hsCurrentSchool] = {area: hsCurrentArea, progress: hsCurrentProgress};
+    
+    const areaData = (hsData[hsCurrentSchool] || {})[hsCurrentArea] || {};
+    const progressList = Object.keys(areaData).map(p => ({
+      name: p,
+      createdAt: areaData[p].createdAt || 0
+    })).sort((a,b) => b.createdAt - a.createdAt);
+    
+    if(progressList.length > 0){
+      hsCurrentProgress = progressList[0].name;
+    } else {
+      hsCurrentProgress = null;
+    }
+    
+    hsLastSelections[hsCurrentSchool] = {area: hsCurrentArea, progress: hsCurrentProgress};
+    fbSet('settings/hsLastSelections', hsLastSelections);
+    renderHsDetail();
+  });
+});
+
+(function(){var el=document.getElementById('hs-new-progress');if(el)el.addEventListener('click',function(){
+  const input = document.getElementById('hs-progress-input');
+  const name = input.value.trim();
+  if(!name){
+    alert('진도 이름을 입력하세요. (예: 5강 1-6번)');
+    return;
+  }
+  hsCurrentProgress = name;
+  hsLastSelections[hsCurrentSchool] = {area: hsCurrentArea, progress: name};
+  fbSet('settings/hsLastSelections', hsLastSelections);
+  fbSet(`highschool/${hsCurrentSchool}/${hsCurrentArea}/${name}/createdAt`, Date.now());
+  renderHsDetail();
+});})();
+
+(function(){var el=document.getElementById('hs-progress-input');if(el)el.addEventListener('keydown', function(e){if(e.key === 'Enter'){var b=document.getElementById('hs-new-progress');if(b)b.click();}});})();
+
+setTimeout(()=>{
+  get(ref(db, 'settings/hsStudents')).then(snap=>{
+    if(!snap.exists()){
+      fbSet('settings/hsStudents', HS_STUDENTS_DEFAULT);
+    }
+  });
+},3500);
+
+
+
+function applyPermissions(){
+  const u = USERS[currentUser];
+  if(!u) return;
+  
+  document.getElementById('current-user-display').textContent = currentUser;
+  
+  document.querySelectorAll('.page-tab').forEach(btn => {
+    const page = btn.dataset.page;
+    let show = true;
+    if(page === 'main') show = u.perms.middle;
+    if(page === 'highschool') show = u.perms.high;
+    if(page === 'manager-eden') show = u.perms.mgrEden;
+    if(page === 'manager-ella') show = u.perms.mgrElla;
+    btn.style.display = show ? '' : 'none';
+  });
+  
+  const allowed = ['Eden','Ella','Bianca','Hailey'].filter(n => n !== currentUser);
+  ['eden','ella','bianca','hailey'].forEach(key => {
+    const box = document.querySelector('.mgr-note-'+key);
+    if(box){
+      const nameMap = {eden:'Eden', ella:'Ella', bianca:'Bianca', hailey:'Hailey'};
+      box.style.display = allowed.includes(nameMap[key]) ? '' : 'none';
+    }
+  });
+  
+  if(!u.perms.middle && currentPage==='main'){
+    if(u.perms.high) switchPage('highschool');
+    else if(u.perms.mgrElla) switchPage('manager-ella');
+  }
+}
+
+window.doLogin = function(){
+  const name = document.getElementById('login-name').value;
+  const pw = document.getElementById('login-pw').value;
+  const err = document.getElementById('login-error');
+  
+  console.log('Login attempt:', name, 'pw length:', pw.length, 'expected:', window.USERS && window.USERS[name] ? window.USERS[name].pw : 'no user');
+  
+  if(window.USERS && window.USERS[name] && window.USERS[name].pw === pw){
+    if(typeof currentUser !== 'undefined'){
+      currentUser = name;
+      myName = name;
+    }
+    window.currentUser = name;
+    window.myName = name;
+    localStorage.setItem('currentUser', name);
+    localStorage.setItem('myName', name);
+    err.style.display = 'none';
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('main-content').style.display = 'block';
+    if(typeof applyPermissions === 'function') applyPermissions();
+    if(typeof renderAll === 'function') renderAll();
+  } else {
+    err.style.display = 'block';
+  }
+};
+
+window.doLogout = function(){
+  if(!confirm('로그아웃 할까요?')) return;
+  localStorage.removeItem('currentUser');
+  currentUser = null;
+  document.getElementById('main-content').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'block';
+  document.getElementById('login-pw').value = '';
+};
+
+// Attach listeners with safety check
+function attachLoginHandlers(){
+  const btn = document.getElementById('login-btn');
+  const pwInput = document.getElementById('login-pw');
+  const logoutBtn = document.getElementById('btn-logout');
+  
+  if(btn){
+    btn.onclick = window.doLogin;
+  }
+  if(pwInput){
+    pwInput.onkeydown = function(e){
+      if(e.key === 'Enter') window.doLogin();
+    };
+  }
+  if(logoutBtn){
+    logoutBtn.onclick = window.doLogout;
+  }
+}
+
+attachLoginHandlers();
+setTimeout(attachLoginHandlers, 500);
+setTimeout(attachLoginHandlers, 1500);
+
 </script>
 </body>
 </html>
