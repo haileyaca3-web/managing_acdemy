@@ -174,13 +174,20 @@ table.schedule{border-collapse:collapse;width:100%;min-width:760px;font-size:13p
 .report-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;padding-bottom:8px;border-bottom:0.5px solid var(--border-tertiary)}
 
 
-.mgr-notes-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:1rem}
-.mgr-note-box{border-radius:var(--radius-lg);padding:14px 16px}
+.mgr-notes-row{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-bottom:1rem}
+.mgr-note-box{border-radius:var(--radius-lg);padding:12px 14px;min-width:0}
 .mgr-note-eden{background:#E1F5EE}
 .mgr-note-ella{background:#FBEAF0}
+.mgr-note-bianca{background:#F3E4C9}
+.mgr-note-hailey{background:#EEEDFE}
 .mgr-note-text{font-size:14px;margin:0;line-height:1.6;white-space:pre-wrap;color:var(--text-primary)}
-@media (prefers-color-scheme:dark){.mgr-note-eden{background:#04342C}.mgr-note-ella{background:#4B1528}.mgr-note-eden .mgr-note-text,.mgr-note-ella .mgr-note-text{color:#e8e6dc}}
-@media (max-width:600px){.mgr-notes-row{grid-template-columns:1fr}}
+.mnote-edit-btn{margin-left:auto;padding:4px 8px;font-size:11px;background:transparent;border:0.5px solid var(--border-tertiary);border-radius:var(--radius-md);cursor:pointer;color:var(--text-secondary);display:flex;align-items:center}
+@media (prefers-color-scheme:dark){.mgr-note-eden{background:#04342C}.mgr-note-ella{background:#4B1528}.mgr-note-bianca{background:#412402}.mgr-note-hailey{background:#26215C}.mgr-note-box .mgr-note-text{color:#e8e6dc}}
+@media (max-width:900px){.mgr-notes-row{grid-template-columns:1fr 1fr}}
+@media (max-width:500px){.mgr-notes-row{grid-template-columns:1fr}}
+.personal-memo-box{background:#E6F1FB;border:1px dashed #85B7EB;border-radius:var(--radius-lg);padding:14px 16px;margin-bottom:1rem}
+.personal-memo-text{font-size:15px;margin:0;line-height:1.6;white-space:pre-wrap;color:var(--text-primary);min-height:24px}
+@media (prefers-color-scheme:dark){.personal-memo-box{background:#042C53;border-color:#85B7EB}.personal-memo-text{color:#e8e6dc}}
 .connect-status{font-size:13px;padding:5px 10px;border-radius:999px;display:inline-flex;align-items:center;gap:4px}
 .connect-status.online{background:#E1F5EE;color:#085041}
 .connect-status.offline{background:#FCEBEB;color:#791F1F}
@@ -233,7 +240,7 @@ table.schedule{border-collapse:collapse;width:100%;min-width:760px;font-size:13p
 
 <div class="who-am-i">
   <span style="color:var(--text-tertiary)">내 이름:</span>
-  <button class="who-btn" data-who="나">나</button>
+  <button class="who-btn" data-who="Hailey">Hailey</button>
   <button class="who-btn" data-who="Eden">Eden</button>
   <button class="who-btn" data-who="Ella">Ella</button>
   <button class="who-btn" data-who="Bianca">Bianca</button>
@@ -260,19 +267,45 @@ table.schedule{border-collapse:collapse;width:100%;min-width:760px;font-size:13p
     <div class="mgr-note-box mgr-note-eden">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
         <i class="ti ti-message-circle" style="color:#085041"></i>
-        <p style="font-size:13px;font-weight:600;margin:0;color:#085041">Eden 매니저께 전달</p>
-        <button id="btn-edit-mnote-eden" style="margin-left:auto;padding:2px 8px;font-size:11px;background:transparent;border:0.5px solid var(--border-tertiary);border-radius:var(--radius-md);cursor:pointer;color:var(--text-secondary)"><i class="ti ti-edit"></i> 수정</button>
+        <p style="font-size:14px;font-weight:600;margin:0;color:#085041">Eden께 전달</p>
+        <button id="btn-edit-mnote-eden" class="mnote-edit-btn"><i class="ti ti-edit"></i></button>
       </div>
-      <p id="mnote-eden-text" class="mgr-note-text">아직 전달사항이 없습니다.</p>
+      <p id="mnote-eden-text" class="mgr-note-text">전달사항 없음</p>
     </div>
     <div class="mgr-note-box mgr-note-ella">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
         <i class="ti ti-message-circle" style="color:#4B1528"></i>
-        <p style="font-size:13px;font-weight:600;margin:0;color:#4B1528">Ella 매니저께 전달</p>
-        <button id="btn-edit-mnote-ella" style="margin-left:auto;padding:2px 8px;font-size:11px;background:transparent;border:0.5px solid var(--border-tertiary);border-radius:var(--radius-md);cursor:pointer;color:var(--text-secondary)"><i class="ti ti-edit"></i> 수정</button>
+        <p style="font-size:14px;font-weight:600;margin:0;color:#4B1528">Ella께 전달</p>
+        <button id="btn-edit-mnote-ella" class="mnote-edit-btn"><i class="ti ti-edit"></i></button>
       </div>
-      <p id="mnote-ella-text" class="mgr-note-text">아직 전달사항이 없습니다.</p>
+      <p id="mnote-ella-text" class="mgr-note-text">전달사항 없음</p>
     </div>
+    <div class="mgr-note-box mgr-note-bianca">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+        <i class="ti ti-message-circle" style="color:#633806"></i>
+        <p style="font-size:14px;font-weight:600;margin:0;color:#633806">Bianca께 전달</p>
+        <button id="btn-edit-mnote-bianca" class="mnote-edit-btn"><i class="ti ti-edit"></i></button>
+      </div>
+      <p id="mnote-bianca-text" class="mgr-note-text">전달사항 없음</p>
+    </div>
+    <div class="mgr-note-box mgr-note-hailey">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+        <i class="ti ti-message-circle" style="color:#26215C"></i>
+        <p style="font-size:14px;font-weight:600;margin:0;color:#26215C">Hailey께 전달</p>
+        <button id="btn-edit-mnote-hailey" class="mnote-edit-btn"><i class="ti ti-edit"></i></button>
+      </div>
+      <p id="mnote-hailey-text" class="mgr-note-text">전달사항 없음</p>
+    </div>
+  </div>
+
+  <div class="personal-memo-box">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+      <i class="ti ti-notebook" style="color:var(--text-info);font-size:18px"></i>
+      <p style="font-size:14px;font-weight:600;margin:0;color:var(--text-info)">내 메모장 <span id="memo-owner-label" style="color:var(--text-tertiary);font-weight:400;font-size:12px">(나만 보임)</span></p>
+      <button id="btn-edit-personal" class="mnote-edit-btn" style="margin-left:auto"><i class="ti ti-edit"></i> 수정</button>
+      <button id="btn-clear-personal" class="mnote-edit-btn" style="color:var(--text-danger)"><i class="ti ti-trash"></i></button>
+    </div>
+    <p id="personal-memo-text" class="personal-memo-text">아직 메모가 없습니다. 수정 버튼을 눌러 적어두세요!</p>
   </div>
 
   <div class="manager-row">
@@ -430,6 +463,8 @@ let todos = {};
 let notice = '';
 let mgrNoteEden = '';
 let mgrNoteElla = '';
+let mgrNoteBianca = '';
+let mgrNoteHailey = '';
 let activityLog = [];
 
 let selectedCell = null;
@@ -443,7 +478,16 @@ let mgrFilter = 'open';
 let reportTab = 'middle';
 let adminTab = 'students';
 let adminSelectedClass = null;
-let myName = localStorage.getItem('myName') || '나';
+let myName = localStorage.getItem('myName') || 'Hailey';
+
+function getPersonalMemoKey(){return 'personalMemo_'+myName}
+function loadPersonalMemo(){
+  const txt = localStorage.getItem(getPersonalMemoKey()) || '';
+  const el = document.getElementById('personal-memo-text');
+  if(el) el.textContent = txt || '아직 메모가 없습니다. 수정 버튼을 눌러 적어두세요!';
+  const label = document.getElementById('memo-owner-label');
+  if(label) label.textContent = `(${myName}만 보임)`;
+}
 
 function rebuildIds(){
   SCHEDULE_ROWS.forEach((r,ri)=>r.forEach((c,ci)=>{if(c){c.id=`r${ri}-c${ci}`;c.col=ci}}));
@@ -530,9 +574,13 @@ onValue(ref(db, dataPath), (snap) => {
   notice = data.notice || '';
   mgrNoteEden = data.mgrNoteEden || '';
   mgrNoteElla = data.mgrNoteElla || '';
+  mgrNoteBianca = data.mgrNoteBianca || '';
+  mgrNoteHailey = data.mgrNoteHailey || '';
   document.getElementById('notice-text').textContent = notice || '공지사항이 없습니다. 수정 버튼을 눌러 추가하세요.';
-  document.getElementById('mnote-eden-text').textContent = mgrNoteEden || '아직 전달사항이 없습니다.';
-  document.getElementById('mnote-ella-text').textContent = mgrNoteElla || '아직 전달사항이 없습니다.';
+  document.getElementById('mnote-eden-text').textContent = mgrNoteEden || '전달사항 없음';
+  document.getElementById('mnote-ella-text').textContent = mgrNoteElla || '전달사항 없음';
+  document.getElementById('mnote-bianca-text').textContent = mgrNoteBianca || '전달사항 없음';
+  document.getElementById('mnote-hailey-text').textContent = mgrNoteHailey || '전달사항 없음';
   renderGrid();
   if(currentPage === 'manager') renderManagerBoard();
   if(currentPage === 'report') renderReport();
@@ -1293,16 +1341,34 @@ document.getElementById('btn-edit-notice').addEventListener('click',()=>{
 });
 
 document.getElementById('btn-edit-mnote-eden').addEventListener('click',()=>{
-  const next=prompt('Eden 매니저께 전달할 내용:',mgrNoteEden);
-  if(next!==null){
-    fbSet(`${dataPath}/mgrNoteEden`,next);
-  }
+  const next=prompt('Eden께 전달할 내용:',mgrNoteEden);
+  if(next!==null){fbSet(`${dataPath}/mgrNoteEden`,next)}
+});
+document.getElementById('btn-edit-mnote-ella').addEventListener('click',()=>{
+  const next=prompt('Ella께 전달할 내용:',mgrNoteElla);
+  if(next!==null){fbSet(`${dataPath}/mgrNoteElla`,next)}
+});
+document.getElementById('btn-edit-mnote-bianca').addEventListener('click',()=>{
+  const next=prompt('Bianca께 전달할 내용:',mgrNoteBianca);
+  if(next!==null){fbSet(`${dataPath}/mgrNoteBianca`,next)}
+});
+document.getElementById('btn-edit-mnote-hailey').addEventListener('click',()=>{
+  const next=prompt('Hailey께 전달할 내용:',mgrNoteHailey);
+  if(next!==null){fbSet(`${dataPath}/mgrNoteHailey`,next)}
 });
 
-document.getElementById('btn-edit-mnote-ella').addEventListener('click',()=>{
-  const next=prompt('Ella 매니저께 전달할 내용:',mgrNoteElla);
+document.getElementById('btn-edit-personal').addEventListener('click',()=>{
+  const cur=localStorage.getItem(getPersonalMemoKey())||'';
+  const next=prompt(`${myName}의 개인 메모 (나만 봄):`,cur);
   if(next!==null){
-    fbSet(`${dataPath}/mgrNoteElla`,next);
+    localStorage.setItem(getPersonalMemoKey(),next);
+    loadPersonalMemo();
+  }
+});
+document.getElementById('btn-clear-personal').addEventListener('click',()=>{
+  if(confirm('개인 메모를 모두 지울까요?')){
+    localStorage.removeItem(getPersonalMemoKey());
+    loadPersonalMemo();
   }
 });
 
@@ -1312,8 +1378,11 @@ document.querySelectorAll('.who-btn').forEach(btn=>{
     myName=btn.dataset.who;
     localStorage.setItem('myName',myName);
     document.querySelectorAll('.who-btn').forEach(b=>b.classList.toggle('active',b.dataset.who===myName));
+    loadPersonalMemo();
   });
 });
+
+setTimeout(()=>loadPersonalMemo(),100);
 
 setTimeout(()=>{
   if(document.getElementById('initial-loading').style.display!=='none'){
