@@ -146,6 +146,12 @@ table.schedule{border-collapse:collapse;width:100%;min-width:760px;font-size:13p
 .filter-chk.active{background:var(--text-primary);border-color:var(--text-primary);color:var(--bg-primary)}
 
 .mgr-group{background:var(--bg-primary);border-radius:var(--radius-md);padding:10px 12px;margin-bottom:8px}
+.day-filter-row{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;padding-bottom:10px;border-bottom:0.5px solid var(--border-tertiary)}
+.day-filter-tab{padding:8px 14px;font-size:14px;font-weight:600;border:1px solid var(--border-tertiary);border-radius:var(--radius-md);background:var(--bg-primary);cursor:pointer;color:var(--text-secondary);display:flex;align-items:center;gap:6px}
+.day-filter-tab.active{background:var(--text-info);color:white;border-color:var(--text-info)}
+.day-cnt{font-size:11px;padding:1px 6px;background:rgba(0,0,0,0.15);border-radius:999px;font-weight:500}
+.day-filter-tab.active .day-cnt{background:rgba(255,255,255,0.25)}
+.day-mini-pill{display:inline-block;padding:2px 7px;border-radius:999px;background:var(--bg-info);color:var(--text-info);font-size:11px;font-weight:600;margin-right:4px}
 .mgr-group:last-child{margin-bottom:0}
 .mgr-group-header{display:flex;align-items:center;gap:8px;margin-bottom:6px}
 .mgr-item{display:flex;align-items:center;gap:8px;padding:8px 6px;border-radius:var(--radius-md);cursor:pointer}
@@ -177,7 +183,8 @@ table.schedule{border-collapse:collapse;width:100%;min-width:760px;font-size:13p
 .student-name-clickable{font-weight:600;min-width:80px;flex-shrink:0;color:var(--text-info);display:flex;align-items:center;gap:4px}
 
 
-.mgr-notes-row{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-bottom:1rem}
+.mgr-notes-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:1rem}
+.mgr-note-box{flex:1;min-width:200px}
 .mgr-note-box{border-radius:var(--radius-lg);padding:12px 14px;min-width:0}
 .mgr-note-eden{background:#E1F5EE}
 .mgr-note-ella{background:#FBEAF0}
@@ -525,6 +532,11 @@ let pendingSub = null;
 let currentPage = 'main';
 let mgrTab = 'middle';
 let mgrFilter = 'open';
+let mgrDayFilter = (function(){
+  const d = new Date().getDay();
+  if(d===0||d===6) return 0; // 주말이면 월요일
+  return d-1;
+})();
 let reportTab = 'middle';
 let adminTab = 'students';
 let adminSelectedClass = null;
@@ -1080,20 +1092,57 @@ function renderManagerBoard(){
   const byCategory={retest:[],homework:[],absent:[],vocab:[],etc:[]};
   filtered.forEach(it=>byCategory[it.memo.category]?.push(it));
   let html='';
-  ['retest','homework','absent','vocab','etc'].forEach(cat=>{
-    if(!byCategory[cat]||byCategory[cat].length===0)return;
-    const t=TAG_LABELS[cat];
-    html+=`<div class="mgr-group"><div class="mgr-group-header"><span class="tag tag-${t.cls}">${t.short} ${t.full}</span><span style="font-size:11px;color:var(--text-tertiary)">${byCategory[cat].length}건</span></div>`;
-    byCategory[cat].forEach(it=>{
-      html+=`<div class="mgr-item ${it.memo.done?'done':''}" data-memo-id="${it.memo.id}" data-cell-id="${it.cellId}">
+  // 요일별 카운트 계산 (필터 전 전체 기준)
+  const dayCounts = {0:0,1:0,2:0,3:0,4:0,all:filtered.length};
+  filtered.forEach(it => {
+    const dayIdx = Math.floor(it.cell.col/2);
+    if(dayCounts[dayIdx]!==undefined) dayCounts[dayIdx]++;
+  });
+  
+  // 요일 탭 추가
+  let dayTabsHtml = '<div class="day-filter-row">';
+  for(let d=0; d<5; d++){
+    const activeCls = mgrDayFilter===d ? 'active' : '';
+    const dayName = DAY_KO[d+1];
+    const cnt = dayCounts[d];
+    dayTabsHtml += `<button class="day-filter-tab ${activeCls}" data-day="${d}">${dayName} ${cnt>0?`<span class="day-cnt">${cnt}</span>`:''}</button>`;
+  }
+  dayTabsHtml += `<button class="day-filter-tab ${mgrDayFilter==='all'?'active':''}" data-day="all">전체 ${dayCounts.all}</button></div>`;
+  
+  // 선택한 요일만 필터링
+  let dayFiltered = filtered;
+  if(mgrDayFilter !== 'all'){
+    dayFiltered = filtered.filter(it => Math.floor(it.cell.col/2) === mgrDayFilter);
+  }
+  
+  // 다시 카테고리별로 분류
+  const byCategoryFiltered = {retest:[],homework:[],absent:[],vocab:[],etc:[]};
+  dayFiltered.forEach(it=>byCategoryFiltered[it.memo.category]?.push(it));
+  
+  html = dayTabsHtml; // 위에 만든 카테고리 html 무시하고 다시 시작
+  
+  if(dayFiltered.length === 0){
+    const todayLabel = mgrDayFilter==='all' ? '' : DAY_KO[mgrDayFilter+1]+'요일에';
+    html += `<p style="font-size:13px;color:var(--text-tertiary);text-align:center;margin:0;padding:1.5rem 0">${todayLabel} 등록된 내용이 없습니다.</p>`;
+  } else {
+    ['retest','homework','absent','vocab','etc'].forEach(cat=>{
+      if(!byCategoryFiltered[cat]||byCategoryFiltered[cat].length===0)return;
+      const t=TAG_LABELS[cat];
+      html+=`<div class="mgr-group"><div class="mgr-group-header"><span class="tag tag-${t.cls}">${t.short} ${t.full}</span><span style="font-size:11px;color:var(--text-tertiary)">${byCategoryFiltered[cat].length}건</span></div>`;
+      byCategoryFiltered[cat].forEach(it=>{
+        const dayIdx = Math.floor(it.cell.col/2);
+        const dayName = DAY_KO[dayIdx+1];
+        html+=`<div class="mgr-item ${it.memo.done?'done':''}" data-memo-id="${it.memo.id}" data-cell-id="${it.cellId}">
 <div class="check-box"><i class="ti ti-check check-icon"></i></div>
 <span class="class-pill">${escapeHtml(it.cell.label)}</span>
+${mgrDayFilter==='all'?`<span class="day-mini-pill">${dayName}</span>`:''}
 <div class="mgr-item-text"><b>${escapeHtml(it.memo.name)}</b>${it.memo.detail?` <span style="color:var(--text-secondary)">${escapeHtml(it.memo.detail)}</span>`:''}
 ${it.memo.done&&it.memo.doneAt?`<div class="done-info">✓ ${escapeHtml(it.memo.doneBy||'')} 확인 (${formatTime(it.memo.doneAt)})</div>`:''}
 </div></div>`;
+      });
+      html+=`</div>`;
     });
-    html+=`</div>`;
-  });
+  }
   board.innerHTML=mgrNoteHtml+html;
   board.querySelectorAll('.mgr-item').forEach(el=>{
     el.addEventListener('click',()=>{
@@ -1106,6 +1155,14 @@ ${it.memo.done&&it.memo.doneAt?`<div class="done-info">✓ ${escapeHtml(it.memo.
         doneAt:newDone?Date.now():null,
         doneBy:newDone?(mgrTab==='middle'?'Eden':'Ella'):null
       });
+    });
+  });
+  
+  board.querySelectorAll('.day-filter-tab').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      const d = btn.dataset.day;
+      mgrDayFilter = d==='all' ? 'all' : parseInt(d);
+      renderManagerBoard();
     });
   });
 }
@@ -1202,7 +1259,7 @@ function copyStudentForParent(className, studentName){
   const byCategory = {retest:[], homework:[], absent:[], vocab:[], etc:[]};
   studentItems.forEach(it => {
     const dayIdx = Math.floor(it.cell.col/2);
-    const dayName = DAY_KO[dayIdx+1];
+    const dayName = DAY_KO[dayIdx+1] + '요일';
     byCategory[it.memo.category]?.push({day:dayName, detail:it.memo.detail, dayIdx});
   });
   
@@ -1582,10 +1639,15 @@ setTimeout(()=>{
 
 
 function renderHsList(){
-  document.getElementById('hs-school-list').style.display='block';
-  document.getElementById('hs-detail').style.display='none';
-  document.getElementById('hs-title').textContent='고등부 시트';
-  document.getElementById('hs-subtitle').textContent='학교를 선택하세요';
+  const listEl = document.getElementById('hs-school-list');
+  const detailEl = document.getElementById('hs-detail');
+  const titleEl = document.getElementById('hs-title');
+  const subEl = document.getElementById('hs-subtitle');
+  if(!listEl) return;
+  listEl.style.display='block';
+  if(detailEl) detailEl.style.display='none';
+  if(titleEl) titleEl.textContent='고등부 시트';
+  if(subEl) subEl.textContent='학교를 선택하세요';
   hsCurrentSchool = null;
   
   const container = document.getElementById('hs-school-list').querySelector('div');
