@@ -245,6 +245,19 @@ table.schedule{border-collapse:collapse;width:100%;min-width:760px;font-size:13p
 .check.done{background:var(--text-success);border-color:var(--text-success);color:white}
 .check.done i{font-size:14px}
 
+/* 입력 모달 */
+.modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:9999;padding:20px}
+.modal-box{background:var(--bg-primary);border-radius:var(--radius-lg);padding:24px;max-width:380px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,0.2)}
+.modal-title{font-size:17px;font-weight:600;margin:0 0 6px}
+.modal-subtitle{font-size:13px;color:var(--text-secondary);margin:0 0 16px}
+.modal-input{width:100%;padding:12px 14px;font-size:16px;border:1.5px solid var(--border-secondary);border-radius:var(--radius-md);background:var(--bg-primary);color:var(--text-primary);margin-bottom:12px;box-sizing:border-box}
+.modal-input:focus{outline:none;border-color:var(--text-info);box-shadow:0 0 0 3px rgba(55,138,221,0.15)}
+.modal-btn-row{display:flex;gap:8px;margin-top:8px}
+.modal-btn{flex:1;padding:11px;font-size:15px;font-weight:500;border-radius:var(--radius-md);cursor:pointer;border:1px solid var(--border-tertiary)}
+.modal-btn-primary{background:var(--text-info);color:white;border-color:var(--text-info)}
+.modal-btn-secondary{background:var(--bg-primary);color:var(--text-secondary)}
+.modal-btn-danger{background:#A32D2D;color:white;border-color:#A32D2D}
+
 @media (max-width: 600px) {
   .app{padding:12px}
   h1{font-size:24px !important}
@@ -639,6 +652,92 @@ let hsCurrentProgress = null;
 function escapeHtml(s){
   if(s==null) return '';
   return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// 입력 모달 (prompt 대체)
+function showInputModal(opts){
+  return new Promise(resolve=>{
+    // 기존 모달이 있으면 제거
+    const existing = document.getElementById('input-modal');
+    if(existing) existing.remove();
+    
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    overlay.id = 'input-modal';
+    
+    const fields = opts.fields || [{name:'value', label:opts.label||'', value:opts.value||'', placeholder:''}];
+    
+    let inputsHtml = '';
+    fields.forEach((f,i)=>{
+      inputsHtml += `<input type="text" class="modal-input modal-field" data-name="${f.name}" placeholder="${escapeHtml(f.placeholder||'')}" value="${escapeHtml(f.value||'')}" ${i===0?'autofocus':''} />`;
+    });
+    
+    let btnsHtml = `<button type="button" class="modal-btn modal-btn-secondary" data-action="cancel">취소</button>`;
+    if(opts.canDelete){
+      btnsHtml += `<button type="button" class="modal-btn modal-btn-danger" data-action="delete">삭제</button>`;
+    }
+    btnsHtml += `<button type="button" class="modal-btn modal-btn-primary" data-action="ok">${opts.okLabel||'확인'}</button>`;
+    
+    overlay.innerHTML = `<div class="modal-box">
+<p class="modal-title">${escapeHtml(opts.title||'입력')}</p>
+${opts.subtitle?`<p class="modal-subtitle">${escapeHtml(opts.subtitle)}</p>`:''}
+${inputsHtml}
+<div class="modal-btn-row">${btnsHtml}</div>
+</div>`;
+    document.body.appendChild(overlay);
+    
+    const inputs = overlay.querySelectorAll('.modal-field');
+    if(inputs.length>0) setTimeout(()=>inputs[0].focus(),50);
+    
+    const close = (result)=>{ overlay.remove(); resolve(result); };
+    
+    overlay.querySelector('[data-action="ok"]').addEventListener('click',()=>{
+      const values = {};
+      inputs.forEach(inp=>values[inp.dataset.name] = inp.value.trim());
+      close({action:'ok', values});
+    });
+    overlay.querySelector('[data-action="cancel"]').addEventListener('click',()=>close({action:'cancel'}));
+    const delBtn = overlay.querySelector('[data-action="delete"]');
+    if(delBtn) delBtn.addEventListener('click',()=>close({action:'delete'}));
+    
+    overlay.addEventListener('click',e=>{
+      if(e.target === overlay) close({action:'cancel'});
+    });
+    
+    // Enter 키
+    inputs.forEach((inp,i)=>{
+      inp.addEventListener('keydown',e=>{
+        if(e.key==='Enter'){
+          if(i < inputs.length-1) inputs[i+1].focus();
+          else overlay.querySelector('[data-action="ok"]').click();
+        } else if(e.key==='Escape'){
+          close({action:'cancel'});
+        }
+      });
+    });
+  });
+}
+
+function showConfirm(title, subtitle){
+  return new Promise(resolve=>{
+    const existing = document.getElementById('input-modal');
+    if(existing) existing.remove();
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    overlay.id = 'input-modal';
+    overlay.innerHTML = `<div class="modal-box">
+<p class="modal-title">${escapeHtml(title||'확인')}</p>
+${subtitle?`<p class="modal-subtitle">${escapeHtml(subtitle)}</p>`:''}
+<div class="modal-btn-row">
+<button type="button" class="modal-btn modal-btn-secondary" data-action="cancel">취소</button>
+<button type="button" class="modal-btn modal-btn-primary" data-action="ok">확인</button>
+</div></div>`;
+    document.body.appendChild(overlay);
+    const close = (result)=>{ overlay.remove(); resolve(result); };
+    overlay.querySelector('[data-action="ok"]').addEventListener('click',()=>close(true));
+    overlay.querySelector('[data-action="cancel"]').addEventListener('click',()=>close(false));
+    overlay.addEventListener('click',e=>{ if(e.target===overlay) close(false); });
+  });
 }
 
 function rebuildIds(){
@@ -1628,61 +1727,66 @@ function renderEditSchedule(){
   DAYS.forEach(()=>sh+=`<th class="sub-h">H</th><th class="sub-b">B</th>`);
   document.getElementById('edit-sub-header-row').innerHTML = sh;
   
-  // 셀 클릭 - 추가/수정/삭제
-  tbody.querySelectorAll('.edit-cell').forEach(td=>td.addEventListener('click',()=>{
+  // 셀 클릭 - 추가/수정/삭제 (예쁜 모달 사용)
+  tbody.querySelectorAll('.edit-cell').forEach(td=>td.addEventListener('click', async ()=>{
     const r=parseInt(td.dataset.row), c=parseInt(td.dataset.col);
     const cell=SCHEDULE_ROWS[r][c];
     const cl=cell?cell.label:'';
     const ct=cell&&cell.time?cell.time:'';
+    const dayName = DAY_KO[Math.floor(c/2)+1];
+    const hbName = (c%2===0)?'H':'B';
+    const timeName = TIME_SLOTS[r]||'';
     
-    // 기존 셀이 있으면 삭제 옵션 제공
-    if(cell){
-      const action = prompt(`현재: ${cl}${ct?' ('+ct+')':''}\n\n수정하려면 새 반 이름을 입력하세요.\n삭제하려면 빈 칸으로 두고 확인을 누르세요.\n취소: ESC`, cl);
-      if(action===null) return;
-      const tl = action.trim();
-      if(!tl){
-        if(confirm(`${cl} 수업을 삭제할까요?`)){
-          SCHEDULE_ROWS[r][c]=null;
-          rebuildIds();
-          fbSet('settings/schedule', SCHEDULE_ROWS);
-        }
-        return;
-      }
-      const time = prompt('시작 시간 (선택, 빈 칸이면 시간 표시 안 함):', ct);
-      if(time===null) return;
-      let type='class';
-      if(/^초/.test(tl)) type='cho';
-      else if(/^[1-3][A-C]$/i.test(tl)) type='class';
-      else if(/[가-힣]+\d/.test(tl)) type='school';
-      const nc={label:tl,type};
-      if(time.trim()) nc.time=time.trim();
-      SCHEDULE_ROWS[r][c]=nc;
-    } else {
-      // 빈 셀 - 새로 추가
-      const label = prompt('추가할 반 이름:', '');
-      if(label===null) return;
-      const tl = label.trim();
-      if(!tl) return;
-      const time = prompt('시작 시간 (선택):', '');
-      if(time===null) return;
-      let type='class';
-      if(/^초/.test(tl)) type='cho';
-      else if(/^[1-3][A-C]$/i.test(tl)) type='class';
-      else if(/[가-힣]+\d/.test(tl)) type='school';
-      const nc={label:tl,type};
-      if(time.trim()) nc.time=time.trim();
-      SCHEDULE_ROWS[r][c]=nc;
+    const result = await showInputModal({
+      title: cell?`${cl} 수정`:`수업 추가`,
+      subtitle: `${dayName}요일 ${hbName} 컬럼 · ${timeName}`,
+      fields: [
+        {name:'label', label:'반 이름', value:cl, placeholder:'예: 1A, 초6, 강남1'},
+        {name:'time', label:'시작 시간', value:ct, placeholder:'선택 - 예: 4:40 (비우면 표시 안 함)'}
+      ],
+      okLabel: cell?'수정':'추가',
+      canDelete: !!cell
+    });
+    
+    if(result.action === 'cancel') return;
+    
+    if(result.action === 'delete'){
+      SCHEDULE_ROWS[r][c] = null;
+      rebuildIds();
+      fbSet('settings/schedule', SCHEDULE_ROWS);
+      return;
     }
+    
+    const tl = (result.values.label||'').trim();
+    if(!tl){
+      if(cell){
+        // 빈 칸 → 삭제
+        SCHEDULE_ROWS[r][c] = null;
+        rebuildIds();
+        fbSet('settings/schedule', SCHEDULE_ROWS);
+      }
+      return;
+    }
+    
+    let type='class';
+    if(/^초/.test(tl)) type='cho';
+    else if(/^[1-3][A-C]$/i.test(tl)) type='class';
+    else if(/[가-힣]+\d/.test(tl)) type='school';
+    const nc={label:tl,type};
+    const tm = (result.values.time||'').trim();
+    if(tm) nc.time = tm;
+    SCHEDULE_ROWS[r][c] = nc;
     rebuildIds();
     fbSet('settings/schedule', SCHEDULE_ROWS);
   }));
   
   // 행 삭제 버튼
-  tbody.querySelectorAll('.row-del-btn').forEach(btn=>btn.addEventListener('click',e=>{
+  tbody.querySelectorAll('.row-del-btn').forEach(btn=>btn.addEventListener('click', async e=>{
     e.stopPropagation();
     const r = parseInt(btn.dataset.row);
     const timeLabel = TIME_SLOTS[r] || `${r+1}번째 행`;
-    if(!confirm(`${timeLabel} 행 전체를 삭제할까요?\n이 시간대의 모든 수업이 사라집니다.`)) return;
+    const ok = await showConfirm(`${timeLabel} 행 삭제`, '이 시간대의 모든 수업이 사라집니다. 계속할까요?');
+    if(!ok) return;
     SCHEDULE_ROWS.splice(r, 1);
     TIME_SLOTS.splice(r, 1);
     rebuildIds();
@@ -1692,12 +1796,16 @@ function renderEditSchedule(){
   
   // 행 추가 버튼
   const addRowBtn = document.getElementById('btn-add-row');
-  if(addRowBtn) addRowBtn.addEventListener('click',()=>{
-    const time = prompt('새 시간대를 입력하세요 (예: 2:00, 10:30 등):', '');
-    if(time===null) return;
-    const tt = time.trim();
+  if(addRowBtn) addRowBtn.addEventListener('click', async ()=>{
+    const result = await showInputModal({
+      title:'새 시간대 추가',
+      subtitle:'시간만 입력하세요 (수업은 빈 셀 클릭으로 추가)',
+      fields:[{name:'time', label:'시간', value:'', placeholder:'예: 2:00, 10:30'}],
+      okLabel:'추가'
+    });
+    if(result.action!=='ok') return;
+    const tt = (result.values.time||'').trim();
     if(!tt) return;
-    // 빈 행 추가
     const emptyRow = Array(DAYS.length * 2).fill(null);
     SCHEDULE_ROWS.push(emptyRow);
     TIME_SLOTS.push(tt);
@@ -1707,10 +1815,17 @@ function renderEditSchedule(){
   });
   
   // 시간대 클릭 - 시간 변경
-  tbody.querySelectorAll('[data-time-row]').forEach(td=>td.addEventListener('click',()=>{
+  tbody.querySelectorAll('[data-time-row]').forEach(td=>td.addEventListener('click', async ()=>{
     const r=parseInt(td.dataset.timeRow);
-    const next=prompt('시간대:',TIME_SLOTS[r]||'');
-    if(next!==null){TIME_SLOTS[r]=next.trim();fbSet('settings/timeSlots',TIME_SLOTS);}
+    const result = await showInputModal({
+      title:'시간 변경',
+      subtitle:`현재: ${TIME_SLOTS[r]||'없음'}`,
+      fields:[{name:'time', value:TIME_SLOTS[r]||'', placeholder:'예: 3:00, 4:10'}],
+      okLabel:'변경'
+    });
+    if(result.action!=='ok') return;
+    TIME_SLOTS[r] = (result.values.time||'').trim();
+    fbSet('settings/timeSlots', TIME_SLOTS);
   }));
 }
 
@@ -1946,3 +2061,4 @@ setTimeout(tryShowInitialScreen, 6000);
 </script>
 </body>
 </html>
+
