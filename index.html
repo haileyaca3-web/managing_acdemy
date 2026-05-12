@@ -2063,7 +2063,6 @@ onValue(ref(db, settingsPath), (snap)=>{
     SCHEDULE_ROWS = normalized;
     rebuildIds();
   } else {
-    // 시간표가 비어있으면 기본 7행 빈 시간표 만들기
     SCHEDULE_ROWS = [];
     for(let i=0; i<7; i++){
       SCHEDULE_ROWS.push(Array(DAYS.length * 2).fill(null));
@@ -2072,13 +2071,33 @@ onValue(ref(db, settingsPath), (snap)=>{
     fbSet('settings/schedule', SCHEDULE_ROWS);
   }
   
-  // 시간대 처리
   const normalizedTimes = normalizeTimeSlots(data.timeSlots);
   if(normalizedTimes && normalizedTimes.length > 0){
     TIME_SLOTS = normalizedTimes;
   } else {
     TIME_SLOTS = [...TIME_SLOTS_DEFAULT];
     fbSet('settings/timeSlots', TIME_SLOTS);
+  }
+  
+  // ★ schedule과 timeSlots 길이 맞추기 (불일치 시 큰 쪽에 맞춤)
+  if(SCHEDULE_ROWS.length !== TIME_SLOTS.length){
+    console.log('길이 불일치 감지! schedule:', SCHEDULE_ROWS.length, 'timeSlots:', TIME_SLOTS.length);
+    const targetLen = Math.max(SCHEDULE_ROWS.length, TIME_SLOTS.length, 7);
+    // schedule 길이 맞추기
+    while(SCHEDULE_ROWS.length < targetLen){
+      SCHEDULE_ROWS.push(Array(DAYS.length * 2).fill(null));
+    }
+    if(SCHEDULE_ROWS.length > targetLen) SCHEDULE_ROWS.length = targetLen;
+    // timeSlots 길이 맞추기
+    const defaults = ['3:00','4:10','5:20','6:30','7:40','8:40','9:40'];
+    while(TIME_SLOTS.length < targetLen){
+      TIME_SLOTS.push(defaults[TIME_SLOTS.length] || (TIME_SLOTS.length+1)+':00');
+    }
+    if(TIME_SLOTS.length > targetLen) TIME_SLOTS.length = targetLen;
+    rebuildIds();
+    fbSet('settings/schedule', SCHEDULE_ROWS);
+    fbSet('settings/timeSlots', TIME_SLOTS);
+    console.log('길이 통일됨:', targetLen);
   }
   if(data.hsStudents){
     // 빈 학교만 디폴트로 채우기 (있는 데이터는 유지)
