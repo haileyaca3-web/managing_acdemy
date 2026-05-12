@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>학원 주간 보드</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.40.0/tabler-icons.min.css">
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css" />
 <style>
 :root {
   --bg-primary: #ffffff;
@@ -41,7 +43,7 @@
   }
 }
 *{box-sizing:border-box}
-body{font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;margin:0;padding:0;background:var(--bg-tertiary);color:var(--text-primary);line-height:1.5}
+body{font-family:"Pretendard Variable",Pretendard,-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;margin:0;padding:0;background:var(--bg-tertiary);color:var(--text-primary);line-height:1.5}
 .app{max-width:1100px;margin:0 auto;padding:16px}
 .loading-msg{text-align:center;padding:2rem;color:var(--text-tertiary);font-size:14px}
 button{font-family:inherit;font-size:15px}
@@ -86,7 +88,7 @@ table.schedule{border-collapse:collapse;width:100%;min-width:760px;font-size:13p
 .sub-b.today-b{background:#FAEAC2;color:#5C4317}
 @media (prefers-color-scheme:dark){.sub-h.today-h{background:#1A3956;color:#D6E5F0}.sub-b.today-b{background:#5C4317;color:#FAEAC2}}
 .time-cell{background:var(--bg-secondary);border:0.5px solid var(--border-tertiary);padding:6px;text-align:center;font-size:13px;color:var(--text-secondary);font-weight:600}
-.sch-cell{border:0.5px solid var(--border-tertiary);padding:6px;text-align:center;font-size:13px;height:64px;cursor:pointer;vertical-align:middle;position:relative;background:var(--bg-primary);color:var(--text-primary);transition:background 0.15s}
+.sch-cell{border:0.5px solid var(--border-tertiary);padding:6px;text-align:center;font-size:13px;height:80px;cursor:pointer;vertical-align:middle;position:relative;background:var(--bg-primary);color:var(--text-primary);transition:background 0.15s}
 .sch-cell:hover{background:var(--bg-secondary)}
 .sch-cell.today-h{background:#D6E5F0}
 .sch-cell.today-b{background:#FAEAC2}
@@ -94,9 +96,11 @@ table.schedule{border-collapse:collapse;width:100%;min-width:760px;font-size:13p
 .sch-cell.today-b:hover{background:#F5DEAB}
 @media (prefers-color-scheme:dark){.sch-cell.today-h{background:rgba(55,138,221,0.18)}.sch-cell.today-b{background:rgba(250,234,194,0.18)}}
 .sch-cell .cell-time{font-size:11px;display:block;color:var(--text-tertiary);margin-bottom:2px;font-weight:500}
-.sch-cell .cell-name{font-weight:700;font-size:14px}
+.sch-cell .cell-name{font-weight:700;font-size:22px;letter-spacing:-0.5px}
 .sch-cell.empty{background:transparent;cursor:default}
 .sch-cell.empty:hover{background:transparent}
+.sch-cell.empty.today-h{background:#D6E5F0}
+.sch-cell.empty.today-b{background:#FAEAC2}
 .sch-cell.selected{outline:2px solid var(--text-primary);outline-offset:-2px}
 .cell-todo-preview{font-size:12px;color:var(--text-success);margin-top:3px;line-height:1.3;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 2px;font-weight:600}
 .cell-todo-more{font-size:11px;color:var(--text-tertiary);display:block;line-height:1.3}
@@ -244,7 +248,7 @@ table.schedule{border-collapse:collapse;width:100%;min-width:760px;font-size:13p
   table.schedule{font-size:14px}
   .day-header{font-size:16px;padding:10px 4px}
   .sch-cell{height:74px;font-size:15px}
-  .sch-cell .cell-name{font-size:15px;font-weight:700}
+  .sch-cell .cell-name{font-size:20px;font-weight:700}
   input,select,textarea,button{font-size:16px !important}
 }
 </style>
@@ -451,8 +455,13 @@ table.schedule{border-collapse:collapse;width:100%;min-width:760px;font-size:13p
   </div>
 
   <div id="admin-schedule" style="display:none">
-    <div style="background:var(--bg-info);border-radius:var(--radius-md);padding:10px 12px;margin-bottom:12px;font-size:12px;color:var(--text-info)">
-      <i class="ti ti-info-circle"></i> 셀 클릭 → 반/시간 수정
+    <div style="background:var(--bg-info);border-radius:var(--radius-md);padding:10px 12px;margin-bottom:12px;font-size:13px;color:var(--text-info);line-height:1.6">
+      <i class="ti ti-info-circle"></i> <b>시간표 편집 안내</b><br>
+      · <b>빈 셀 (+) 클릭</b> → 수업 추가<br>
+      · <b>채워진 셀 클릭</b> → 수정 또는 삭제 (빈칸으로 두면 삭제)<br>
+      · <b>왼쪽 시간(3:00 등) 클릭</b> → 시간 변경<br>
+      · <b>오른쪽 휴지통 🗑️</b> → 그 시간대 행 전체 삭제<br>
+      · <b>맨 아래 + 버튼</b> → 새 시간대 행 추가
     </div>
     <div style="overflow-x:auto;border:0.5px solid var(--border-tertiary);border-radius:var(--radius-md)">
       <table class="schedule">
@@ -755,10 +764,10 @@ function renderGrid(){
   SCHEDULE_ROWS.forEach((row,rIdx)=>{
     html+=`<tr><td class="time-cell">${TIME_SLOTS[rIdx]||''}</td>`;
     row.forEach((cell,cIdx)=>{
-      if(!cell){html+=`<td class="sch-cell empty"></td>`;return;}
       const dayIdx=Math.floor(cIdx/2);
       const isHCol=cIdx%2===0;
       const todayCls=dayIdx===todayDayIdx?(isHCol?'today-h':'today-b'):'';
+      if(!cell){html+=`<td class="sch-cell empty ${todayCls}"></td>`;return;}
       const isSel=selectedCell===cell.id?'selected':'';
       const timeStr=cell.time?`<span class="cell-time">${cell.time}</span>`:'';
       const openTodos=getOpenTodos(cell.id);
@@ -1573,48 +1582,112 @@ function renderEditSchedule(){
   const tbody = document.getElementById('edit-schedule-body');
   let html='';
   SCHEDULE_ROWS.forEach((row,rIdx)=>{
-    html+=`<tr><td class="time-cell" data-time-row="${rIdx}" style="cursor:pointer">${TIME_SLOTS[rIdx]||'-'}</td>`;
+    html+=`<tr><td class="time-cell" data-time-row="${rIdx}" style="cursor:pointer" title="클릭해서 시간 변경">${TIME_SLOTS[rIdx]||'-'}</td>`;
     row.forEach((cell,cIdx)=>{
-      if(!cell) html+=`<td class="edit-cell empty" data-row="${rIdx}" data-col="${cIdx}">+</td>`;
+      if(!cell) html+=`<td class="edit-cell empty" data-row="${rIdx}" data-col="${cIdx}" title="클릭해서 수업 추가">+</td>`;
       else {
         const ts = cell.time?`<span style="font-size:9px;display:block;color:var(--text-tertiary)">${cell.time}</span>`:'';
-        html+=`<td class="edit-cell" data-row="${rIdx}" data-col="${cIdx}">${ts}<span style="font-weight:500">${escapeHtml(cell.label)}</span></td>`;
+        html+=`<td class="edit-cell" data-row="${rIdx}" data-col="${cIdx}" title="클릭해서 수정/삭제">${ts}<span style="font-weight:500">${escapeHtml(cell.label)}</span></td>`;
       }
     });
+    // 행 삭제 버튼
+    html+=`<td style="border:none;padding:0 4px"><button type="button" class="row-del-btn" data-row="${rIdx}" title="이 행 전체 삭제" style="background:transparent;border:none;cursor:pointer;color:var(--text-tertiary);padding:2px 6px;border-radius:var(--radius-md)" onmouseover="this.style.background='#FCEBEB';this.style.color='#A32D2D'" onmouseout="this.style.background='transparent';this.style.color='var(--text-tertiary)'"><i class="ti ti-trash" style="font-size:14px"></i></button></td>`;
     html+=`</tr>`;
   });
+  // 행 추가 버튼 행
+  html+=`<tr><td colspan="${1+DAYS.length*2+1}" style="padding:8px;text-align:center;border:0.5px dashed var(--border-tertiary);background:var(--bg-tertiary)">
+<button type="button" id="btn-add-row" style="padding:8px 20px;background:var(--bg-primary);border:1px dashed var(--text-info);border-radius:var(--radius-md);cursor:pointer;color:var(--text-info);font-weight:500;font-size:13px"><i class="ti ti-plus"></i> 시간대 행 추가</button>
+</td></tr>`;
   tbody.innerHTML = html;
-  // 헤더
+  
+  // 헤더 (행 삭제 컬럼 추가)
   let dh='<th rowspan="2" class="corner-cell"></th>';
   DAYS.forEach((d,i)=>dh+=`<th colspan="2" class="day-header">${DAY_KO[i+1]}</th>`);
+  dh += `<th rowspan="2" class="corner-cell" style="width:36px"></th>`;
   document.getElementById('edit-day-header-row').innerHTML = dh;
   let sh='';
   DAYS.forEach(()=>sh+=`<th class="sub-h">H</th><th class="sub-b">B</th>`);
   document.getElementById('edit-sub-header-row').innerHTML = sh;
   
+  // 셀 클릭 - 추가/수정/삭제
   tbody.querySelectorAll('.edit-cell').forEach(td=>td.addEventListener('click',()=>{
     const r=parseInt(td.dataset.row), c=parseInt(td.dataset.col);
     const cell=SCHEDULE_ROWS[r][c];
     const cl=cell?cell.label:'';
     const ct=cell&&cell.time?cell.time:'';
-    const label=prompt('반 이름 (빈 칸:비움):',cl);
-    if(label===null)return;
-    const tl=label.trim();
-    if(!tl){SCHEDULE_ROWS[r][c]=null;}
-    else{
-      const time=prompt('시작 시간 (선택):',ct);
-      if(time===null)return;
+    
+    // 기존 셀이 있으면 삭제 옵션 제공
+    if(cell){
+      const action = prompt(`현재: ${cl}${ct?' ('+ct+')':''}\n\n수정하려면 새 반 이름을 입력하세요.\n삭제하려면 빈 칸으로 두고 확인을 누르세요.\n취소: ESC`, cl);
+      if(action===null) return;
+      const tl = action.trim();
+      if(!tl){
+        if(confirm(`${cl} 수업을 삭제할까요?`)){
+          SCHEDULE_ROWS[r][c]=null;
+          rebuildIds();
+          fbSet('settings/schedule', SCHEDULE_ROWS);
+        }
+        return;
+      }
+      const time = prompt('시작 시간 (선택, 빈 칸이면 시간 표시 안 함):', ct);
+      if(time===null) return;
       let type='class';
-      if(/^초/.test(tl))type='cho';
-      else if(/^[1-3][A-C]$/i.test(tl))type='class';
-      else if(/[가-힣]+\d/.test(tl))type='school';
+      if(/^초/.test(tl)) type='cho';
+      else if(/^[1-3][A-C]$/i.test(tl)) type='class';
+      else if(/[가-힣]+\d/.test(tl)) type='school';
       const nc={label:tl,type};
-      if(time.trim())nc.time=time.trim();
+      if(time.trim()) nc.time=time.trim();
+      SCHEDULE_ROWS[r][c]=nc;
+    } else {
+      // 빈 셀 - 새로 추가
+      const label = prompt('추가할 반 이름:', '');
+      if(label===null) return;
+      const tl = label.trim();
+      if(!tl) return;
+      const time = prompt('시작 시간 (선택):', '');
+      if(time===null) return;
+      let type='class';
+      if(/^초/.test(tl)) type='cho';
+      else if(/^[1-3][A-C]$/i.test(tl)) type='class';
+      else if(/[가-힣]+\d/.test(tl)) type='school';
+      const nc={label:tl,type};
+      if(time.trim()) nc.time=time.trim();
       SCHEDULE_ROWS[r][c]=nc;
     }
     rebuildIds();
     fbSet('settings/schedule', SCHEDULE_ROWS);
   }));
+  
+  // 행 삭제 버튼
+  tbody.querySelectorAll('.row-del-btn').forEach(btn=>btn.addEventListener('click',e=>{
+    e.stopPropagation();
+    const r = parseInt(btn.dataset.row);
+    const timeLabel = TIME_SLOTS[r] || `${r+1}번째 행`;
+    if(!confirm(`${timeLabel} 행 전체를 삭제할까요?\n이 시간대의 모든 수업이 사라집니다.`)) return;
+    SCHEDULE_ROWS.splice(r, 1);
+    TIME_SLOTS.splice(r, 1);
+    rebuildIds();
+    fbSet('settings/schedule', SCHEDULE_ROWS);
+    fbSet('settings/timeSlots', TIME_SLOTS);
+  }));
+  
+  // 행 추가 버튼
+  const addRowBtn = document.getElementById('btn-add-row');
+  if(addRowBtn) addRowBtn.addEventListener('click',()=>{
+    const time = prompt('새 시간대를 입력하세요 (예: 2:00, 10:30 등):', '');
+    if(time===null) return;
+    const tt = time.trim();
+    if(!tt) return;
+    // 빈 행 추가
+    const emptyRow = Array(DAYS.length * 2).fill(null);
+    SCHEDULE_ROWS.push(emptyRow);
+    TIME_SLOTS.push(tt);
+    rebuildIds();
+    fbSet('settings/schedule', SCHEDULE_ROWS);
+    fbSet('settings/timeSlots', TIME_SLOTS);
+  });
+  
+  // 시간대 클릭 - 시간 변경
   tbody.querySelectorAll('[data-time-row]').forEach(td=>td.addEventListener('click',()=>{
     const r=parseInt(td.dataset.timeRow);
     const next=prompt('시간대:',TIME_SLOTS[r]||'');
