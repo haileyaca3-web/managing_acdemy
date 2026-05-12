@@ -1908,27 +1908,28 @@ onValue(ref(db, '.info/connected'), (snap)=>{
 onValue(ref(db, settingsPath), (snap)=>{
   const data = snap.val()||{};
   if(data.students) studentsByLabel = data.students;
-  // 시간표가 있고, 첫 셀이 비어있지 않으면 (옛날 데이터) → 한 번만 강제 초기화
-  if(data.schedule && !localStorage.getItem('emptiedV2')){
-    const hasOldData = Array.isArray(data.schedule) && data.schedule.some(row => row && row.some(cell => cell));
-    if(hasOldData){
-      console.log('옛 시간표 발견 → 빈 시간표로 초기화');
-      fbSet('settings/schedule', SCHEDULE_DEFAULT);
-      fbSet('settings/timeSlots', TIME_SLOTS_DEFAULT);
-      SCHEDULE_ROWS = JSON.parse(JSON.stringify(SCHEDULE_DEFAULT));
-      TIME_SLOTS = [...TIME_SLOTS_DEFAULT];
-      rebuildIds();
-      localStorage.setItem('emptiedV2', 'done');
-    } else {
-      SCHEDULE_ROWS = data.schedule;
-      rebuildIds();
-      localStorage.setItem('emptiedV2', 'done');
-    }
-  } else if(data.schedule){
+  
+  // 시간표 데이터 처리
+  if(data.schedule && Array.isArray(data.schedule) && data.schedule.length > 0){
     SCHEDULE_ROWS = data.schedule;
     rebuildIds();
+  } else {
+    // 시간표가 비어있으면 기본 7행 빈 시간표 만들기
+    SCHEDULE_ROWS = [];
+    for(let i=0; i<7; i++){
+      SCHEDULE_ROWS.push(Array(DAYS.length * 2).fill(null));
+    }
+    rebuildIds();
+    fbSet('settings/schedule', SCHEDULE_ROWS);
   }
-  if(data.timeSlots) TIME_SLOTS = data.timeSlots;
+  
+  // 시간대 처리
+  if(data.timeSlots && Array.isArray(data.timeSlots) && data.timeSlots.length > 0){
+    TIME_SLOTS = data.timeSlots;
+  } else {
+    TIME_SLOTS = [...TIME_SLOTS_DEFAULT];
+    fbSet('settings/timeSlots', TIME_SLOTS);
+  }
   if(data.hsStudents){
     // 빈 학교만 디폴트로 채우기 (있는 데이터는 유지)
     hsStudents = data.hsStudents;
@@ -2085,3 +2086,4 @@ setTimeout(tryShowInitialScreen, 6000);
 </script>
 </body>
 </html>
+
