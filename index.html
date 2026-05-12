@@ -193,9 +193,10 @@ table.schedule{border-collapse:collapse;width:100%;min-width:760px;font-size:13p
 .log-entry{padding:6px 0;border-bottom:0.5px solid var(--border-tertiary);display:flex;align-items:center;gap:8px;font-size:14px}
 .log-entry:last-child{border-bottom:none}
 
-.edit-cell{border:0.5px solid var(--border-tertiary);padding:4px;text-align:center;font-size:11px;height:44px;cursor:pointer;vertical-align:middle;background:var(--bg-primary)}
+.edit-cell{border:0.5px solid var(--border-tertiary);padding:4px;text-align:center;font-size:13px;height:54px;cursor:pointer;vertical-align:middle;background:var(--bg-primary)}
 .edit-cell:hover{background:var(--bg-secondary)}
-.edit-cell.empty{color:var(--text-tertiary);font-style:italic}
+.edit-cell.empty{color:var(--text-info);font-size:22px;font-weight:300;background:repeating-linear-gradient(45deg,transparent,transparent 6px,rgba(55,138,221,0.03) 6px,rgba(55,138,221,0.03) 8px)}
+.edit-cell.empty:hover{background:var(--bg-info);color:var(--text-info)}
 
 .report-section{background:var(--bg-primary);border:0.5px solid var(--border-tertiary);border-radius:var(--radius-lg);padding:14px 16px;margin-bottom:10px}
 .report-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;padding-bottom:8px;border-bottom:0.5px solid var(--border-tertiary)}
@@ -1602,10 +1603,10 @@ function renderEditSchedule(){
   SCHEDULE_ROWS.forEach((row,rIdx)=>{
     html+=`<tr><td class="time-cell" data-time-row="${rIdx}" style="cursor:pointer" title="클릭해서 시간 변경">${TIME_SLOTS[rIdx]||'-'}</td>`;
     row.forEach((cell,cIdx)=>{
-      if(!cell) html+=`<td class="edit-cell empty" data-row="${rIdx}" data-col="${cIdx}" title="클릭해서 수업 추가">+</td>`;
+      if(!cell) html+=`<td class="edit-cell empty" data-row="${rIdx}" data-col="${cIdx}" title="클릭해서 수업 추가"><i class="ti ti-plus" style="font-size:18px"></i></td>`;
       else {
-        const ts = cell.time?`<span style="font-size:9px;display:block;color:var(--text-tertiary)">${cell.time}</span>`:'';
-        html+=`<td class="edit-cell" data-row="${rIdx}" data-col="${cIdx}" title="클릭해서 수정/삭제">${ts}<span style="font-weight:500">${escapeHtml(cell.label)}</span></td>`;
+        const ts = cell.time?`<span style="font-size:10px;display:block;color:var(--text-tertiary);font-weight:400">${cell.time}</span>`:'';
+        html+=`<td class="edit-cell" data-row="${rIdx}" data-col="${cIdx}" title="클릭해서 수정/삭제">${ts}<span style="font-weight:600;font-size:14px">${escapeHtml(cell.label)}</span> <i class="ti ti-edit" style="font-size:11px;color:var(--text-tertiary);margin-left:2px"></i></td>`;
       }
     });
     // 행 삭제 버튼
@@ -1768,7 +1769,26 @@ onValue(ref(db, '.info/connected'), (snap)=>{
 onValue(ref(db, settingsPath), (snap)=>{
   const data = snap.val()||{};
   if(data.students) studentsByLabel = data.students;
-  if(data.schedule){SCHEDULE_ROWS = data.schedule;rebuildIds();}
+  // 시간표가 있고, 첫 셀이 비어있지 않으면 (옛날 데이터) → 한 번만 강제 초기화
+  if(data.schedule && !localStorage.getItem('emptiedV2')){
+    const hasOldData = Array.isArray(data.schedule) && data.schedule.some(row => row && row.some(cell => cell));
+    if(hasOldData){
+      console.log('옛 시간표 발견 → 빈 시간표로 초기화');
+      fbSet('settings/schedule', SCHEDULE_DEFAULT);
+      fbSet('settings/timeSlots', TIME_SLOTS_DEFAULT);
+      SCHEDULE_ROWS = JSON.parse(JSON.stringify(SCHEDULE_DEFAULT));
+      TIME_SLOTS = [...TIME_SLOTS_DEFAULT];
+      rebuildIds();
+      localStorage.setItem('emptiedV2', 'done');
+    } else {
+      SCHEDULE_ROWS = data.schedule;
+      rebuildIds();
+      localStorage.setItem('emptiedV2', 'done');
+    }
+  } else if(data.schedule){
+    SCHEDULE_ROWS = data.schedule;
+    rebuildIds();
+  }
   if(data.timeSlots) TIME_SLOTS = data.timeSlots;
   if(data.hsStudents){
     // 빈 학교만 디폴트로 채우기 (있는 데이터는 유지)
