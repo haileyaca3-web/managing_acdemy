@@ -740,8 +740,54 @@ ${subtitle?`<p class="modal-subtitle">${escapeHtml(subtitle)}</p>`:''}
   });
 }
 
+// Firebase는 배열을 객체로 변환할 수 있음 - 다시 배열로 정규화
+function normalizeSchedule(data){
+  if(!data) return [];
+  // 이미 배열이면 row들도 정규화
+  if(Array.isArray(data)){
+    return data.map(row => {
+      if(!row) return Array(DAYS.length * 2).fill(null);
+      if(Array.isArray(row)) return row;
+      // 객체를 배열로 변환
+      const arr = Array(DAYS.length * 2).fill(null);
+      Object.keys(row).forEach(k => {
+        const idx = parseInt(k);
+        if(!isNaN(idx) && idx >= 0 && idx < arr.length){
+          arr[idx] = row[k];
+        }
+      });
+      return arr;
+    });
+  }
+  // 전체가 객체로 온 경우
+  const keys = Object.keys(data).filter(k => !isNaN(parseInt(k))).sort((a,b)=>parseInt(a)-parseInt(b));
+  return keys.map(k => {
+    const row = data[k];
+    if(!row) return Array(DAYS.length * 2).fill(null);
+    if(Array.isArray(row)) return row;
+    const arr = Array(DAYS.length * 2).fill(null);
+    Object.keys(row).forEach(kk => {
+      const idx = parseInt(kk);
+      if(!isNaN(idx) && idx >= 0 && idx < arr.length){
+        arr[idx] = row[kk];
+      }
+    });
+    return arr;
+  });
+}
+
+function normalizeTimeSlots(data){
+  if(!data) return [];
+  if(Array.isArray(data)) return data;
+  const keys = Object.keys(data).filter(k => !isNaN(parseInt(k))).sort((a,b)=>parseInt(a)-parseInt(b));
+  return keys.map(k => data[k]);
+}
+
 function rebuildIds(){
-  SCHEDULE_ROWS.forEach((r,ri)=>r.forEach((c,ci)=>{if(c){c.id=`r${ri}-c${ci}`;c.col=ci}}));
+  SCHEDULE_ROWS.forEach((r,ri)=>{
+    if(!Array.isArray(r)) return;
+    r.forEach((c,ci)=>{if(c){c.id=`r${ri}-c${ci}`;c.col=ci}});
+  });
 }
 rebuildIds();
 
@@ -1909,9 +1955,10 @@ onValue(ref(db, settingsPath), (snap)=>{
   const data = snap.val()||{};
   if(data.students) studentsByLabel = data.students;
   
-  // 시간표 데이터 처리
-  if(data.schedule && Array.isArray(data.schedule) && data.schedule.length > 0){
-    SCHEDULE_ROWS = data.schedule;
+  // 시간표 데이터 처리 (Firebase 배열↔객체 변환 대응)
+  const normalized = normalizeSchedule(data.schedule);
+  if(normalized && normalized.length > 0){
+    SCHEDULE_ROWS = normalized;
     rebuildIds();
   } else {
     // 시간표가 비어있으면 기본 7행 빈 시간표 만들기
@@ -1924,8 +1971,9 @@ onValue(ref(db, settingsPath), (snap)=>{
   }
   
   // 시간대 처리
-  if(data.timeSlots && Array.isArray(data.timeSlots) && data.timeSlots.length > 0){
-    TIME_SLOTS = data.timeSlots;
+  const normalizedTimes = normalizeTimeSlots(data.timeSlots);
+  if(normalizedTimes && normalizedTimes.length > 0){
+    TIME_SLOTS = normalizedTimes;
   } else {
     TIME_SLOTS = [...TIME_SLOTS_DEFAULT];
     fbSet('settings/timeSlots', TIME_SLOTS);
@@ -2086,4 +2134,3 @@ setTimeout(tryShowInitialScreen, 6000);
 </script>
 </body>
 </html>
-
