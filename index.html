@@ -784,10 +784,29 @@ function normalizeTimeSlots(data){
 }
 
 function rebuildIds(){
-  SCHEDULE_ROWS.forEach((r,ri)=>{
-    if(!Array.isArray(r)) return;
-    r.forEach((c,ci)=>{if(c){c.id=`r${ri}-c${ci}`;c.col=ci}});
-  });
+  // 안전장치: SCHEDULE_ROWS가 배열이 아니거나 row가 배열이 아니면 정규화
+  if(!Array.isArray(SCHEDULE_ROWS)){
+    SCHEDULE_ROWS = normalizeSchedule(SCHEDULE_ROWS);
+  }
+  for(let ri=0; ri<SCHEDULE_ROWS.length; ri++){
+    let r = SCHEDULE_ROWS[ri];
+    if(!Array.isArray(r)){
+      // row가 객체나 null이면 배열로 변환
+      const arr = Array(DAYS.length * 2).fill(null);
+      if(r && typeof r === 'object'){
+        Object.keys(r).forEach(k=>{
+          const idx = parseInt(k);
+          if(!isNaN(idx) && idx >= 0 && idx < arr.length) arr[idx] = r[k];
+        });
+      }
+      SCHEDULE_ROWS[ri] = arr;
+      r = arr;
+    }
+    for(let ci=0; ci<r.length; ci++){
+      const c = r[ci];
+      if(c){c.id=`r${ri}-c${ci}`;c.col=ci;}
+    }
+  }
 }
 rebuildIds();
 
@@ -924,12 +943,13 @@ function getOpenTodos(cellId){return Object.values(todos[cellId]||{}).filter(t=>
 
 function renderGrid(){
   const tbody = document.getElementById('schedule-body');
-  if(!SCHEDULE_ROWS || SCHEDULE_ROWS.length === 0){
+  if(!SCHEDULE_ROWS || !Array.isArray(SCHEDULE_ROWS) || SCHEDULE_ROWS.length === 0){
     tbody.innerHTML = '<tr><td colspan="11" style="padding:30px;text-align:center;color:var(--text-tertiary);font-size:13px">시간표가 비어있습니다. Admin에서 추가하세요.</td></tr>';
     return;
   }
   let html='';
   SCHEDULE_ROWS.forEach((row,rIdx)=>{
+    if(!Array.isArray(row)) row = Array(DAYS.length * 2).fill(null);
     html+=`<tr><td class="time-cell">${TIME_SLOTS[rIdx]||''}</td>`;
     row.forEach((cell,cIdx)=>{
       const dayIdx=Math.floor(cIdx/2);
@@ -1622,7 +1642,7 @@ function renderHsTable(){
 // === Admin: 중등 학생 관리 ===
 function getAllLabels(){
   const labels = new Set();
-  SCHEDULE_ROWS.forEach(row=>row.forEach(c=>{if(c)labels.add(c.label);}));
+  SCHEDULE_ROWS.forEach(row=>{ if(Array.isArray(row)) row.forEach(c=>{if(c)labels.add(c.label);}); });
   Object.keys(studentsByLabel).forEach(l=>labels.add(l));
   return Array.from(labels).sort();
 }
@@ -1765,6 +1785,7 @@ function renderEditSchedule(){
   
   let html='';
   SCHEDULE_ROWS.forEach((row,rIdx)=>{
+    if(!Array.isArray(row)) row = Array(DAYS.length * 2).fill(null);
     html+=`<tr><td class="time-cell" data-time-row="${rIdx}" style="cursor:pointer" title="클릭해서 시간 변경">${TIME_SLOTS[rIdx]||'-'}</td>`;
     row.forEach((cell,cIdx)=>{
       if(!cell) html+=`<td class="edit-cell empty" data-row="${rIdx}" data-col="${cIdx}" title="클릭해서 수업 추가"><i class="ti ti-plus" style="font-size:18px"></i></td>`;
