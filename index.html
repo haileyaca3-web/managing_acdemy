@@ -740,40 +740,66 @@ ${subtitle?`<p class="modal-subtitle">${escapeHtml(subtitle)}</p>`:''}
   });
 }
 
-// Firebase는 배열을 객체로 변환할 수 있음 - 다시 배열로 정규화
+// Firebase는 배열에서 null을 빼버려서 인덱스가 바뀜 - 강력한 정규화
+// 셀의 col 속성을 우선 사용해서 정확한 위치 복원
 function normalizeSchedule(data){
   if(!data) return [];
-  // 이미 배열이면 row들도 정규화
-  if(Array.isArray(data)){
-    return data.map(row => {
-      if(!row) return Array(DAYS.length * 2).fill(null);
-      if(Array.isArray(row)) return row;
-      // 객체를 배열로 변환
-      const arr = Array(DAYS.length * 2).fill(null);
-      Object.keys(row).forEach(k => {
-        const idx = parseInt(k);
-        if(!isNaN(idx) && idx >= 0 && idx < arr.length){
-          arr[idx] = row[k];
+  const numCols = DAYS.length * 2;
+  
+  function normalizeRow(row){
+    if(!row) return Array(numCols).fill(null);
+    const arr = Array(numCols).fill(null);
+    
+    if(Array.isArray(row)){
+      // 배열로 왔는데 cell.col 정보 있으면 그걸 우선
+      let usedCol = false;
+      row.forEach((cell, i) => {
+        if(cell && typeof cell.col === 'number' && cell.col >= 0 && cell.col < numCols){
+          arr[cell.col] = cell;
+          usedCol = true;
         }
       });
-      return arr;
-    });
-  }
-  // 전체가 객체로 온 경우
-  const keys = Object.keys(data).filter(k => !isNaN(parseInt(k))).sort((a,b)=>parseInt(a)-parseInt(b));
-  return keys.map(k => {
-    const row = data[k];
-    if(!row) return Array(DAYS.length * 2).fill(null);
-    if(Array.isArray(row)) return row;
-    const arr = Array(DAYS.length * 2).fill(null);
-    Object.keys(row).forEach(kk => {
-      const idx = parseInt(kk);
-      if(!isNaN(idx) && idx >= 0 && idx < arr.length){
-        arr[idx] = row[kk];
+      // col 정보 없으면 인덱스 그대로
+      if(!usedCol){
+        row.forEach((cell, i) => {
+          if(i < numCols) arr[i] = cell || null;
+        });
       }
-    });
+    } else if(typeof row === 'object'){
+      // 객체: 키가 인덱스 (Firebase가 변환한 것)
+      Object.keys(row).forEach(k => {
+        const cell = row[k];
+        if(!cell) return;
+        // 우선 cell.col 사용
+        if(typeof cell.col === 'number' && cell.col >= 0 && cell.col < numCols){
+          arr[cell.col] = cell;
+        } else {
+          // col 없으면 키를 인덱스로 사용
+          const idx = parseInt(k);
+          if(!isNaN(idx) && idx >= 0 && idx < numCols){
+            arr[idx] = cell;
+          }
+        }
+      });
+    }
     return arr;
-  });
+  }
+  
+  if(Array.isArray(data)){
+    return data.map(normalizeRow);
+  }
+  // 전체가 객체로 온 경우 - 키를 row 인덱스로 사용
+  if(typeof data === 'object'){
+    const keys = Object.keys(data).filter(k => !isNaN(parseInt(k))).map(k=>parseInt(k));
+    if(keys.length === 0) return [];
+    const maxRow = Math.max(...keys);
+    const result = [];
+    for(let i=0; i<=maxRow; i++){
+      result.push(normalizeRow(data[i] || data[String(i)] || null));
+    }
+    return result;
+  }
+  return [];
 }
 
 function normalizeTimeSlots(data){
