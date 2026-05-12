@@ -60,8 +60,10 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--text-inf
 .notice-box{background:var(--bg-info);border-radius:var(--radius-lg);padding:14px 16px;margin-bottom:1rem}
 .notice-text{font-size:16px;margin:0;line-height:1.6;white-space:pre-wrap;color:var(--text-primary)}
 
-.mgr-notes-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:1rem}
-.mgr-note-box{flex:1;min-width:200px;border-radius:var(--radius-lg);padding:12px 14px}
+.mgr-notes-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:1rem;width:100%}
+.mgr-note-box{flex:1 1 200px;min-width:0;border-radius:var(--radius-lg);padding:12px 14px;box-sizing:border-box}
+.mgr-note-box[style*="display: none"]{display:none !important}
+@media (max-width:600px){.mgr-note-box{flex:1 1 100%}}
 .mgr-note-eden{background:#E1F5EE}
 .mgr-note-ella{background:#FBEAF0}
 .mgr-note-bianca{background:#F3E4C9}
@@ -675,7 +677,13 @@ function formatTime(ts){const d=new Date(ts);return `${d.getHours()}:${String(d.
 function applyPermissions(){
   const u = USERS[currentUser];
   if(!u) return;
+  // myName도 currentUser랑 맞추기 (메모장 등에 사용)
+  myName = currentUser;
+  localStorage.setItem('myName', myName);
+  
   document.getElementById('current-user-display').textContent = currentUser;
+  
+  // 탭 권한 처리
   document.querySelectorAll('.page-tab').forEach(btn=>{
     const page = btn.dataset.page;
     let show = true;
@@ -685,9 +693,19 @@ function applyPermissions(){
     if(page==='manager-ella') show = u.perms.mgrElla;
     btn.style.display = show ? '' : 'none';
   });
+  
+  // 메시지 박스: 본인꺼만 숨기고 나머지 다 보이게
   document.querySelectorAll('.mgr-note-box').forEach(box=>{
-    box.style.display = (box.dataset.mgr === currentUser) ? 'none' : '';
+    if(box.dataset.mgr === currentUser){
+      box.style.display = 'none';
+    } else {
+      box.style.display = ''; // flex 컨테이너 안에서 기본 표시
+    }
   });
+  
+  // 개인 메모장 다시 로드 (현재 사용자 기준)
+  if(typeof loadPersonalMemo === 'function') loadPersonalMemo();
+  
   if(!u.perms.middle && currentPage==='main'){
     if(u.perms.high) switchPage('highschool');
     else if(u.perms.mgrElla) switchPage('manager-ella');
