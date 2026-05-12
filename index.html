@@ -654,12 +654,11 @@ function escapeHtml(s){
   return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
-// 입력 모달 (prompt 대체)
+// 입력 모달 (prompt 대체) - 안전 강화 버전
 function showInputModal(opts){
   return new Promise(resolve=>{
-    // 기존 모달이 있으면 제거
-    const existing = document.getElementById('input-modal');
-    if(existing) existing.remove();
+    // 기존 모든 모달 제거 (혹시 여러 개 있을 수 있음)
+    document.querySelectorAll('.modal-overlay').forEach(m => m.remove());
     
     const overlay = document.createElement('div');
     overlay.className = 'modal-overlay';
@@ -669,7 +668,7 @@ function showInputModal(opts){
     
     let inputsHtml = '';
     fields.forEach((f,i)=>{
-      inputsHtml += `<input type="text" class="modal-input modal-field" data-name="${f.name}" placeholder="${escapeHtml(f.placeholder||'')}" value="${escapeHtml(f.value||'')}" ${i===0?'autofocus':''} />`;
+      inputsHtml += `<input type="text" class="modal-input modal-field" data-name="${f.name}" placeholder="${escapeHtml(f.placeholder||'')}" value="${escapeHtml(f.value||'')}" />`;
     });
     
     let btnsHtml = `<button type="button" class="modal-btn modal-btn-secondary" data-action="cancel">취소</button>`;
@@ -689,28 +688,61 @@ ${inputsHtml}
     const inputs = overlay.querySelectorAll('.modal-field');
     if(inputs.length>0) setTimeout(()=>inputs[0].focus(),50);
     
-    const close = (result)=>{ overlay.remove(); resolve(result); };
+    let closed = false;
+    const close = (result)=>{ 
+      if(closed) return;
+      closed = true;
+      overlay.remove(); 
+      resolve(result); 
+    };
     
-    overlay.querySelector('[data-action="ok"]').addEventListener('click',()=>{
+    // OK 버튼
+    const okBtn = overlay.querySelector('[data-action="ok"]');
+    okBtn.addEventListener('click', function(e){
+      e.preventDefault();
+      e.stopPropagation();
       const values = {};
       inputs.forEach(inp=>values[inp.dataset.name] = inp.value.trim());
+      console.log('Modal OK clicked, values:', values);
       close({action:'ok', values});
     });
-    overlay.querySelector('[data-action="cancel"]').addEventListener('click',()=>close({action:'cancel'}));
-    const delBtn = overlay.querySelector('[data-action="delete"]');
-    if(delBtn) delBtn.addEventListener('click',()=>close({action:'delete'}));
     
-    overlay.addEventListener('click',e=>{
+    // 취소 버튼
+    const cancelBtn = overlay.querySelector('[data-action="cancel"]');
+    cancelBtn.addEventListener('click', function(e){
+      e.preventDefault();
+      e.stopPropagation();
+      close({action:'cancel'});
+    });
+    
+    // 삭제 버튼
+    const delBtn = overlay.querySelector('[data-action="delete"]');
+    if(delBtn) delBtn.addEventListener('click', function(e){
+      e.preventDefault();
+      e.stopPropagation();
+      close({action:'delete'});
+    });
+    
+    // 배경 클릭으로 닫기 - 단, 박스 내부 클릭은 닫지 않게
+    overlay.addEventListener('click', function(e){
       if(e.target === overlay) close({action:'cancel'});
     });
     
-    // Enter 키
+    // Enter 키 - 마지막 필드면 OK 실행
     inputs.forEach((inp,i)=>{
       inp.addEventListener('keydown',e=>{
         if(e.key==='Enter'){
-          if(i < inputs.length-1) inputs[i+1].focus();
-          else overlay.querySelector('[data-action="ok"]').click();
+          e.preventDefault();
+          if(i < inputs.length-1){
+            inputs[i+1].focus();
+          } else {
+            // 마지막 필드 → OK 직접 실행
+            const values = {};
+            inputs.forEach(inp2=>values[inp2.dataset.name] = inp2.value.trim());
+            close({action:'ok', values});
+          }
         } else if(e.key==='Escape'){
+          e.preventDefault();
           close({action:'cancel'});
         }
       });
