@@ -878,6 +878,10 @@ function getOpenTodos(cellId){return Object.values(todos[cellId]||{}).filter(t=>
 
 function renderGrid(){
   const tbody = document.getElementById('schedule-body');
+  if(!SCHEDULE_ROWS || SCHEDULE_ROWS.length === 0){
+    tbody.innerHTML = '<tr><td colspan="11" style="padding:30px;text-align:center;color:var(--text-tertiary);font-size:13px">시간표가 비어있습니다. Admin에서 추가하세요.</td></tr>';
+    return;
+  }
   let html='';
   SCHEDULE_ROWS.forEach((row,rIdx)=>{
     html+=`<tr><td class="time-cell">${TIME_SLOTS[rIdx]||''}</td>`;
@@ -1698,6 +1702,21 @@ function renderAdminHsContent(){
 // === Admin: 시간표 ===
 function renderEditSchedule(){
   const tbody = document.getElementById('edit-schedule-body');
+  
+  // 시간표가 비어있으면 기본 7행으로 자동 초기화
+  if(!SCHEDULE_ROWS || SCHEDULE_ROWS.length === 0){
+    SCHEDULE_ROWS = [];
+    for(let i=0; i<7; i++){
+      SCHEDULE_ROWS.push(Array(DAYS.length * 2).fill(null));
+    }
+    if(!TIME_SLOTS || TIME_SLOTS.length === 0){
+      TIME_SLOTS = ['3:00','4:10','5:20','6:30','7:40','8:40','9:40'];
+    }
+    rebuildIds();
+    fbSet('settings/schedule', SCHEDULE_ROWS);
+    fbSet('settings/timeSlots', TIME_SLOTS);
+  }
+  
   let html='';
   SCHEDULE_ROWS.forEach((row,rIdx)=>{
     html+=`<tr><td class="time-cell" data-time-row="${rIdx}" style="cursor:pointer" title="클릭해서 시간 변경">${TIME_SLOTS[rIdx]||'-'}</td>`;
