@@ -1943,23 +1943,46 @@ function renderEditSchedule(){
   
   // 행 추가 버튼
   const addRowBtn = document.getElementById('btn-add-row');
-  if(addRowBtn) addRowBtn.addEventListener('click', async ()=>{
-    const result = await showInputModal({
-      title:'새 시간대 추가',
-      subtitle:'시간만 입력하세요 (수업은 빈 셀 클릭으로 추가)',
-      fields:[{name:'time', label:'시간', value:'', placeholder:'예: 2:00, 10:30'}],
-      okLabel:'추가'
-    });
-    if(result.action!=='ok') return;
-    const tt = (result.values.time||'').trim();
-    if(!tt) return;
-    const emptyRow = Array(DAYS.length * 2).fill(null);
-    SCHEDULE_ROWS.push(emptyRow);
-    TIME_SLOTS.push(tt);
-    rebuildIds();
-    fbSet('settings/schedule', SCHEDULE_ROWS);
-    fbSet('settings/timeSlots', TIME_SLOTS);
-    renderEditSchedule();
+  if(addRowBtn) addRowBtn.addEventListener('click', async function(){
+    console.log('[행추가] 버튼 클릭됨');
+    try {
+      const result = await showInputModal({
+        title:'새 시간대 추가',
+        subtitle:'시간만 입력하세요 (수업은 빈 셀 클릭으로 추가)',
+        fields:[{name:'time', label:'시간', value:'', placeholder:'예: 2:00, 10:30'}],
+        okLabel:'추가'
+      });
+      console.log('[행추가] 모달 결과:', result);
+      if(result.action!=='ok'){console.log('[행추가] 취소됨'); return;}
+      const tt = (result.values.time||'').trim();
+      console.log('[행추가] 입력값:', tt);
+      if(!tt){console.log('[행추가] 빈 값'); return;}
+      
+      // SCHEDULE_ROWS가 배열인지 확인
+      if(!Array.isArray(SCHEDULE_ROWS)){
+        console.log('[행추가] SCHEDULE_ROWS가 배열 아님:', typeof SCHEDULE_ROWS);
+        SCHEDULE_ROWS = normalizeSchedule(SCHEDULE_ROWS);
+      }
+      if(!Array.isArray(TIME_SLOTS)){
+        TIME_SLOTS = normalizeTimeSlots(TIME_SLOTS);
+      }
+      
+      const emptyRow = Array(DAYS.length * 2).fill(null);
+      SCHEDULE_ROWS.push(emptyRow);
+      TIME_SLOTS.push(tt);
+      console.log('[행추가] 추가 후 행 수:', SCHEDULE_ROWS.length, '시간:', TIME_SLOTS.length);
+      
+      rebuildIds();
+      fbSet('settings/schedule', SCHEDULE_ROWS);
+      fbSet('settings/timeSlots', TIME_SLOTS);
+      console.log('[행추가] Firebase 저장됨');
+      
+      renderEditSchedule();
+      console.log('[행추가] 화면 갱신 완료');
+    } catch(err){
+      console.error('[행추가] 에러:', err);
+      alert('행 추가 중 오류: ' + err.message);
+    }
   });
   
   // 시간대 클릭 - 시간 변경
