@@ -1965,7 +1965,7 @@ function renderEditSchedule(){
   let html='';
   SCHEDULE_ROWS.forEach((row,rIdx)=>{
     if(!Array.isArray(row)) row = Array(DAYS.length * 2).fill(null);
-    html+=`<tr><td class="time-cell" data-time-row="${rIdx}" style="cursor:pointer" title="클릭해서 시간 변경">${TIME_SLOTS[rIdx]||'-'}</td>`;
+    html+=`<tr><td class="time-cell" data-time-row="${rIdx}" style="cursor:pointer;background:var(--bg-secondary)" title="클릭해서 시간 변경"><span style="font-weight:500">${TIME_SLOTS[rIdx]||'-'}</span> <i class="ti ti-edit" style="font-size:11px;color:var(--text-tertiary);margin-left:2px"></i></td>`;
     row.forEach((cell,cIdx)=>{
       if(!cell) html+=`<td class="edit-cell empty" data-row="${rIdx}" data-col="${cIdx}" title="클릭해서 수업 추가"><i class="ti ti-plus" style="font-size:18px"></i></td>`;
       else {
@@ -2415,3 +2415,4 @@ setTimeout(tryShowInitialScreen, 6000);
 </script>
 </body>
 </html>
+
