@@ -665,6 +665,45 @@ function escapeHtml(s){
 }
 
 // 메시지를 항상 배열로 정규화
+// 시간표 행 변경 시 todos/memos의 셀 ID 재맵핑
+async function remapCellIds(oldToNewRowMap){
+  // oldToNewRowMap: {oldRow: newRow, ...}, newRow가 null이면 삭제됨
+  const newTodos = {};
+  const newMemos = {};
+  
+  // todos 재맵핑
+  Object.keys(todos).forEach(oldCellId => {
+    const m = oldCellId.match(/^r(\d+)-c(\d+)$/);
+    if(!m) return;
+    const oldRow = parseInt(m[1]);
+    const col = m[2];
+    const newRow = oldToNewRowMap[oldRow];
+    if(newRow === null || newRow === undefined) return; // 삭제된 행은 버림
+    const newCellId = `r${newRow}-c${col}`;
+    newTodos[newCellId] = todos[oldCellId];
+  });
+  
+  // memos 재맵핑
+  Object.keys(memos).forEach(oldCellId => {
+    const m = oldCellId.match(/^r(\d+)-c(\d+)$/);
+    if(!m) return;
+    const oldRow = parseInt(m[1]);
+    const col = m[2];
+    const newRow = oldToNewRowMap[oldRow];
+    if(newRow === null || newRow === undefined) return;
+    const newCellId = `r${newRow}-c${col}`;
+    newMemos[newCellId] = memos[oldCellId];
+  });
+  
+  todos = newTodos;
+  memos = newMemos;
+  
+  // Firebase에 반영
+  await fbSet(`${dataPath}/todos`, todos);
+  await fbSet(`${dataPath}/memos`, memos);
+  console.log('[remap] todos/memos 재맵핑 완료');
+}
+
 function normalizeMgrNote(data){
   if(!data) return [];
   if(typeof data === 'string'){
@@ -2048,17 +2087,26 @@ function renderEditSchedule(){
   }));
   
   // 행 삭제 버튼
-  tbody.querySelectorAll('.row-del-btn').forEach(btn=>btn.addEventListener('click', async e=>{
+  tbody.querySelectorAll('.row-del-btn').forEach(btn=>btn.addEventListener('click', async (e)=>{
     e.stopPropagation();
     const r = parseInt(btn.dataset.row);
     const timeLabel = TIME_SLOTS[r] || `${r+1}번째 행`;
     const ok = await showConfirm(`${timeLabel} 행 삭제`, '이 시간대의 모든 수업이 사라집니다. 계속할까요?');
     if(!ok) return;
+    // 삭제 시 r행은 제거, r+1 이후는 한 칸씩 위로 (todos/memos도 이동)
+    const remapMap = {};
+    for(let i=0; i<SCHEDULE_ROWS.length; i++){
+      if(i === r) remapMap[i] = null; // 삭제
+      else if(i > r) remapMap[i] = i - 1;
+      else remapMap[i] = i;
+    }
+    
     SCHEDULE_ROWS.splice(r, 1);
     TIME_SLOTS.splice(r, 1);
     rebuildIds();
     fbSet('settings/schedule', SCHEDULE_ROWS);
     fbSet('settings/timeSlots', TIME_SLOTS);
+    await remapCellIds(remapMap);
     renderEditSchedule();
   }));
   
@@ -2109,6 +2157,13 @@ function renderEditSchedule(){
       }
       
       const emptyRow = Array(DAYS.length * 2).fill(null);
+      
+      // ★ insertIdx 이상의 기존 행들은 한 칸씩 밀려남 → todos/memos도 같이 이동
+      const remapMap = {};
+      for(let i=0; i<SCHEDULE_ROWS.length; i++){
+        remapMap[i] = (i >= insertIdx) ? i + 1 : i;
+      }
+      
       SCHEDULE_ROWS.splice(insertIdx, 0, emptyRow);
       TIME_SLOTS.splice(insertIdx, 0, tt);
       console.log('[행추가] 위치:', insertIdx, '추가 후 행 수:', SCHEDULE_ROWS.length, '시간:', TIME_SLOTS.length);
@@ -2116,6 +2171,9 @@ function renderEditSchedule(){
       rebuildIds();
       fbSet('settings/schedule', SCHEDULE_ROWS);
       fbSet('settings/timeSlots', TIME_SLOTS);
+      
+      // todos/memos 재맵핑
+      await remapCellIds(remapMap);
       console.log('[행추가] Firebase 저장됨');
       
       renderEditSchedule();
@@ -2415,4 +2473,3 @@ setTimeout(tryShowInitialScreen, 6000);
 </script>
 </body>
 </html>
-
