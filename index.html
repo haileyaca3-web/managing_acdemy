@@ -69,6 +69,16 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--text-inf
 .mgr-note-bianca{background:#F3E4C9}
 .mgr-note-hailey{background:#EEEDFE}
 .mgr-note-text{font-size:14px;margin:0;line-height:1.6;white-space:pre-wrap;color:var(--text-primary)}
+.mnote-list{margin:0;padding:0;list-style:none}
+.mnote-item{display:flex;align-items:flex-start;gap:8px;padding:6px 0;font-size:14px;cursor:pointer;border-radius:4px}
+.mnote-item:hover{background:rgba(0,0,0,0.04)}
+.mnote-check{width:18px;height:18px;border-radius:4px;border:1.5px solid var(--border-secondary);background:var(--bg-primary);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.mnote-item.done .mnote-check{background:var(--text-success);border-color:var(--text-success)}
+.mnote-check .check-icon{color:white;font-size:12px;display:none}
+.mnote-item.done .mnote-check .check-icon{display:block}
+.mnote-text-item{flex:1;line-height:1.4}
+.mnote-item.done .mnote-text-item{text-decoration:line-through;color:var(--text-tertiary)}
+.mnote-empty{font-size:13px;color:var(--text-tertiary);font-style:italic;margin:0;padding:4px 0}
 .mnote-edit-btn{margin-left:auto;padding:4px 8px;font-size:11px;background:transparent;border:0.5px solid var(--border-tertiary);border-radius:var(--radius-md);cursor:pointer;color:var(--text-secondary);display:flex;align-items:center}
 @media (prefers-color-scheme:dark){.mgr-note-eden{background:#04342C}.mgr-note-ella{background:#4B1528}.mgr-note-bianca{background:#412402}.mgr-note-hailey{background:#26215C}.mgr-note-box .mgr-note-text{color:#e8e6dc}}
 
@@ -330,30 +340,30 @@ table.schedule{border-collapse:collapse;width:100%;min-width:760px;font-size:13p
     <div class="mgr-note-box mgr-note-eden" data-mgr="Eden">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
         <p style="font-size:14px;font-weight:600;margin:0;color:#085041">Eden <i class="ti ti-message-circle"></i></p>
-        <button type="button" class="mnote-edit-btn" data-edit="eden"><i class="ti ti-edit"></i></button>
+        <button type="button" class="mnote-edit-btn" data-edit="eden"><i class="ti ti-plus"></i> 추가</button>
       </div>
-      <p id="mnote-eden-text" class="mgr-note-text">전달사항 없음</p>
+      <div id="mnote-eden-text" class="mgr-note-text"><p class="mnote-empty">전달사항 없음</p></div>
     </div>
     <div class="mgr-note-box mgr-note-ella" data-mgr="Ella">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
         <p style="font-size:14px;font-weight:600;margin:0;color:#4B1528">Ella <i class="ti ti-message-circle"></i></p>
-        <button type="button" class="mnote-edit-btn" data-edit="ella"><i class="ti ti-edit"></i></button>
+        <button type="button" class="mnote-edit-btn" data-edit="ella"><i class="ti ti-plus"></i> 추가</button>
       </div>
-      <p id="mnote-ella-text" class="mgr-note-text">전달사항 없음</p>
+      <div id="mnote-ella-text" class="mgr-note-text"><p class="mnote-empty">전달사항 없음</p></div>
     </div>
     <div class="mgr-note-box mgr-note-bianca" data-mgr="Bianca">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
         <p style="font-size:14px;font-weight:600;margin:0;color:#633806">Bianca <i class="ti ti-message-circle"></i></p>
-        <button type="button" class="mnote-edit-btn" data-edit="bianca"><i class="ti ti-edit"></i></button>
+        <button type="button" class="mnote-edit-btn" data-edit="bianca"><i class="ti ti-plus"></i> 추가</button>
       </div>
-      <p id="mnote-bianca-text" class="mgr-note-text">전달사항 없음</p>
+      <div id="mnote-bianca-text" class="mgr-note-text"><p class="mnote-empty">전달사항 없음</p></div>
     </div>
     <div class="mgr-note-box mgr-note-hailey" data-mgr="Hailey">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
         <p style="font-size:14px;font-weight:600;margin:0;color:#26215C">Hailey <i class="ti ti-message-circle"></i></p>
-        <button type="button" class="mnote-edit-btn" data-edit="hailey"><i class="ti ti-edit"></i></button>
+        <button type="button" class="mnote-edit-btn" data-edit="hailey"><i class="ti ti-plus"></i> 추가</button>
       </div>
-      <p id="mnote-hailey-text" class="mgr-note-text">전달사항 없음</p>
+      <div id="mnote-hailey-text" class="mgr-note-text"><p class="mnote-empty">전달사항 없음</p></div>
     </div>
   </div>
 
@@ -428,7 +438,7 @@ table.schedule{border-collapse:collapse;width:100%;min-width:760px;font-size:13p
   
   <div id="my-msg-box" style="display:none;background:#E6F1FB;border-radius:var(--radius-md);padding:12px 14px;margin-bottom:14px">
     <p style="font-size:13px;font-weight:600;margin:0 0 6px;color:var(--text-info)" id="my-msg-label"><i class="ti ti-message-circle"></i> 내 전달사항</p>
-    <p id="my-msg-text" style="font-size:14px;margin:0;color:var(--text-primary)">전달사항 없음</p>
+    <div id="my-msg-text" style="font-size:14px;margin:0;color:var(--text-primary)"><p class="mnote-empty">전달사항 없음</p></div>
   </div>
 
   <div id="day-filter-row" class="day-filter-row"></div>
@@ -624,10 +634,10 @@ let hsLastSelections = {};
 let memos = {};
 let todos = {};
 let notice = '';
-let mgrNoteEden = '';
-let mgrNoteElla = '';
-let mgrNoteBianca = '';
-let mgrNoteHailey = '';
+let mgrNoteEden = [];
+let mgrNoteElla = [];
+let mgrNoteBianca = [];
+let mgrNoteHailey = [];
 
 let selectedCell = null;
 let activeTab = 'issue';
@@ -652,6 +662,91 @@ let hsCurrentProgress = null;
 function escapeHtml(s){
   if(s==null) return '';
   return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// 메시지를 항상 배열로 정규화
+function normalizeMgrNote(data){
+  if(!data) return [];
+  if(typeof data === 'string'){
+    // 옛 문자열 데이터 → 줄 단위 배열
+    if(!data.trim()) return [];
+    return data.split('\n').filter(line=>line.trim()).map((text,i)=>({
+      id: 'old_'+i+'_'+Date.now(),
+      text: text.trim(),
+      done: false
+    }));
+  }
+  if(Array.isArray(data)){
+    return data.filter(item=>item && item.text);
+  }
+  if(typeof data === 'object'){
+    // Firebase가 배열을 객체로 변환한 경우
+    const keys = Object.keys(data).sort();
+    return keys.map(k=>data[k]).filter(item=>item && item.text);
+  }
+  return [];
+}
+
+// 메시지 체크리스트 렌더링
+function renderMgrNoteList(who, items){
+  const container = document.getElementById('mnote-'+who+'-text');
+  if(!container) return;
+  if(!items || items.length === 0){
+    container.innerHTML = '<p class="mnote-empty">전달사항 없음</p>';
+    return;
+  }
+  let html = '<ul class="mnote-list">';
+  items.forEach(item=>{
+    html += `<li class="mnote-item ${item.done?'done':''}" data-id="${escapeHtml(item.id)}" data-who="${who}">
+<div class="mnote-check"><i class="ti ti-check check-icon"></i></div>
+<span class="mnote-text-item">${escapeHtml(item.text)}</span>
+<button type="button" class="mnote-del-btn" data-del-id="${escapeHtml(item.id)}" data-del-who="${who}" title="삭제" style="background:transparent;border:none;cursor:pointer;color:var(--text-tertiary);padding:2px;opacity:0.5"><i class="ti ti-x" style="font-size:14px"></i></button>
+</li>`;
+  });
+  html += '</ul>';
+  container.innerHTML = html;
+  
+  // 체크 클릭 (체크 박스나 텍스트 영역만)
+  container.querySelectorAll('.mnote-check, .mnote-text-item').forEach(el=>{
+    el.addEventListener('click', e=>{
+      e.stopPropagation();
+      const item = el.closest('.mnote-item');
+      toggleMgrNoteItem(item.dataset.who, item.dataset.id);
+    });
+  });
+  
+  // 삭제 버튼
+  container.querySelectorAll('.mnote-del-btn').forEach(btn=>{
+    btn.addEventListener('click', async e=>{
+      e.stopPropagation();
+      const ok = await showConfirm('이 항목 삭제?', '');
+      if(!ok) return;
+      deleteMgrNoteItem(btn.dataset.delWho, btn.dataset.delId);
+    });
+  });
+}
+
+function deleteMgrNoteItem(who, id){
+  const map = {eden:'mgrNoteEden', ella:'mgrNoteElla', bianca:'mgrNoteBianca', hailey:'mgrNoteHailey'};
+  if(who==='eden') mgrNoteEden = mgrNoteEden.filter(i=>i.id!==id);
+  else if(who==='ella') mgrNoteElla = mgrNoteElla.filter(i=>i.id!==id);
+  else if(who==='bianca') mgrNoteBianca = mgrNoteBianca.filter(i=>i.id!==id);
+  else if(who==='hailey') mgrNoteHailey = mgrNoteHailey.filter(i=>i.id!==id);
+  
+  const arr = {eden:mgrNoteEden, ella:mgrNoteElla, bianca:mgrNoteBianca, hailey:mgrNoteHailey}[who];
+  fbSet(`${dataPath}/${map[who]}`, arr);
+}
+
+function toggleMgrNoteItem(who, id){
+  const map = {eden:mgrNoteEden, ella:mgrNoteElla, bianca:mgrNoteBianca, hailey:mgrNoteHailey};
+  const keyMap = {eden:'mgrNoteEden', ella:'mgrNoteElla', bianca:'mgrNoteBianca', hailey:'mgrNoteHailey'};
+  const arr = map[who];
+  if(!arr) return;
+  const item = arr.find(i=>i.id===id);
+  if(item){
+    item.done = !item.done;
+    fbSet(`${dataPath}/${keyMap[who]}`, arr);
+  }
 }
 
 // 입력 모달 (prompt 대체) - 안전 강화 버전
@@ -1290,11 +1385,37 @@ function renderManagerBoard(){
   const mgrName = mgrTab==='middle' ? 'Eden' : 'Ella';
   document.getElementById('manager-title').innerHTML = `<i class="ti ti-clipboard-list"></i> ${mgrName} 매니저 확인 보드`;
   
-  // 내 전달사항
+  // 내 전달사항 (체크리스트)
   const myMsg = mgrTab==='middle' ? mgrNoteEden : mgrNoteElla;
-  if(myMsg && myMsg.trim()){
+  const myMsgWho = mgrTab==='middle' ? 'eden' : 'ella';
+  if(myMsg && Array.isArray(myMsg) && myMsg.length > 0){
     document.getElementById('my-msg-box').style.display = 'block';
-    document.getElementById('my-msg-text').textContent = myMsg;
+    const container = document.getElementById('my-msg-text');
+    let html = '<ul class="mnote-list">';
+    myMsg.forEach(item=>{
+      html += `<li class="mnote-item ${item.done?'done':''}" data-id="${escapeHtml(item.id)}" data-who="${myMsgWho}">
+<div class="mnote-check"><i class="ti ti-check check-icon"></i></div>
+<span class="mnote-text-item">${escapeHtml(item.text)}</span>
+<button type="button" class="mnote-del-btn" data-del-id="${escapeHtml(item.id)}" data-del-who="${myMsgWho}" style="background:transparent;border:none;cursor:pointer;color:var(--text-tertiary);padding:2px;opacity:0.5"><i class="ti ti-x" style="font-size:14px"></i></button>
+</li>`;
+    });
+    html += '</ul>';
+    container.innerHTML = html;
+    container.querySelectorAll('.mnote-check, .mnote-text-item').forEach(el=>{
+      el.addEventListener('click', e=>{
+        e.stopPropagation();
+        const item = el.closest('.mnote-item');
+        toggleMgrNoteItem(item.dataset.who, item.dataset.id);
+      });
+    });
+    container.querySelectorAll('.mnote-del-btn').forEach(btn=>{
+      btn.addEventListener('click', async e=>{
+        e.stopPropagation();
+        const ok = await showConfirm('이 항목 삭제?', '');
+        if(!ok) return;
+        deleteMgrNoteItem(btn.dataset.delWho, btn.dataset.delId);
+      });
+    });
     document.getElementById('my-msg-label').innerHTML = `<i class="ti ti-message-circle"></i> ${mgrName}께 전달된 메시지`;
   } else {
     document.getElementById('my-msg-box').style.display = 'none';
@@ -2145,15 +2266,16 @@ onValue(ref(db, dataPath), (snap)=>{
   memos = data.memos||{};
   todos = data.todos||{};
   notice = data.notice||'';
-  mgrNoteEden = data.mgrNoteEden||'';
-  mgrNoteElla = data.mgrNoteElla||'';
-  mgrNoteBianca = data.mgrNoteBianca||'';
-  mgrNoteHailey = data.mgrNoteHailey||'';
+  // 메시지를 항상 배열로 정규화
+  mgrNoteEden = normalizeMgrNote(data.mgrNoteEden);
+  mgrNoteElla = normalizeMgrNote(data.mgrNoteElla);
+  mgrNoteBianca = normalizeMgrNote(data.mgrNoteBianca);
+  mgrNoteHailey = normalizeMgrNote(data.mgrNoteHailey);
   document.getElementById('notice-text').textContent = notice || '공지사항이 없습니다.';
-  document.getElementById('mnote-eden-text').textContent = mgrNoteEden || '전달사항 없음';
-  document.getElementById('mnote-ella-text').textContent = mgrNoteElla || '전달사항 없음';
-  document.getElementById('mnote-bianca-text').textContent = mgrNoteBianca || '전달사항 없음';
-  document.getElementById('mnote-hailey-text').textContent = mgrNoteHailey || '전달사항 없음';
+  renderMgrNoteList('eden', mgrNoteEden);
+  renderMgrNoteList('ella', mgrNoteElla);
+  renderMgrNoteList('bianca', mgrNoteBianca);
+  renderMgrNoteList('hailey', mgrNoteHailey);
   if(document.getElementById('main-content').style.display !== 'none'){
     renderGrid();
     if(currentPage==='manager-eden' || currentPage==='manager-ella') renderManagerBoard();
@@ -2190,13 +2312,31 @@ document.getElementById('btn-edit-notice').addEventListener('click',()=>{
   if(next!==null) fbSet(`${dataPath}/notice`, next);
 });
 
-document.querySelectorAll('.mnote-edit-btn[data-edit]').forEach(btn=>btn.addEventListener('click',()=>{
+document.querySelectorAll('.mnote-edit-btn[data-edit]').forEach(btn=>btn.addEventListener('click', async ()=>{
   const who = btn.dataset.edit;
   const names = {eden:'Eden',ella:'Ella',bianca:'Bianca',hailey:'Hailey'};
   const vals = {eden:mgrNoteEden,ella:mgrNoteElla,bianca:mgrNoteBianca,hailey:mgrNoteHailey};
   const keys = {eden:'mgrNoteEden',ella:'mgrNoteElla',bianca:'mgrNoteBianca',hailey:'mgrNoteHailey'};
-  const next = prompt(`${names[who]} 전달 내용:`, vals[who]);
-  if(next!==null) fbSet(`${dataPath}/${keys[who]}`, next);
+  
+  const result = await showInputModal({
+    title: `${names[who]}에게 새 전달사항 추가`,
+    subtitle: '한 항목씩 입력해서 추가 (체크리스트에 들어감)',
+    fields:[{name:'text', label:'내용', value:'', placeholder:'예: 중등부 시험 점수 확인'}],
+    okLabel:'추가'
+  });
+  
+  if(result.action!=='ok') return;
+  const text = (result.values.text||'').trim();
+  if(!text) return;
+  
+  const arr = vals[who] || [];
+  arr.push({
+    id: 'm'+Date.now()+'_'+Math.random().toString(36).substr(2,5),
+    text: text,
+    done: false,
+    createdAt: Date.now()
+  });
+  fbSet(`${dataPath}/${keys[who]}`, arr);
 }));
 
 document.getElementById('btn-edit-personal').addEventListener('click',()=>{
