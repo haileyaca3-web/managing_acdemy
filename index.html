@@ -2088,10 +2088,30 @@ function renderEditSchedule(){
         TIME_SLOTS = normalizeTimeSlots(TIME_SLOTS);
       }
       
+      // 시간 순서대로 삽입할 위치 찾기
+      const timeToMinutes = (t) => {
+        if(!t) return 99999;
+        const parts = t.toString().split(':');
+        if(parts.length < 2) return 99999;
+        const h = parseInt(parts[0]) || 0;
+        const m = parseInt(parts[1]) || 0;
+        // 학원이 오후/저녁이라 12시 이하면 12 더하기 (예: 2:00 → 14:00, 3:00 → 15:00)
+        return (h < 12 ? h + 12 : h) * 60 + m;
+      };
+      
+      const newMinutes = timeToMinutes(tt);
+      let insertIdx = TIME_SLOTS.length;
+      for(let i=0; i<TIME_SLOTS.length; i++){
+        if(timeToMinutes(TIME_SLOTS[i]) > newMinutes){
+          insertIdx = i;
+          break;
+        }
+      }
+      
       const emptyRow = Array(DAYS.length * 2).fill(null);
-      SCHEDULE_ROWS.push(emptyRow);
-      TIME_SLOTS.push(tt);
-      console.log('[행추가] 추가 후 행 수:', SCHEDULE_ROWS.length, '시간:', TIME_SLOTS.length);
+      SCHEDULE_ROWS.splice(insertIdx, 0, emptyRow);
+      TIME_SLOTS.splice(insertIdx, 0, tt);
+      console.log('[행추가] 위치:', insertIdx, '추가 후 행 수:', SCHEDULE_ROWS.length, '시간:', TIME_SLOTS.length);
       
       rebuildIds();
       fbSet('settings/schedule', SCHEDULE_ROWS);
