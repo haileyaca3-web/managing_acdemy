@@ -1879,9 +1879,8 @@ function renderHsTable(){
 // 진도 탭 빠른 전환 (display 토글, 다시 그리지 않음)
 function switchHsProgress(progressName){
   hsCurrentProgress = progressName;
-  hsLastSelections[hsCurrentSchool] = {area:hsCurrentArea, progress:progressName};
-  fbSet('settings/hsLastSelections', hsLastSelections);
   
+  // UI 즉시 업데이트 (Firebase 저장 전에)
   // 모든 표 숨기고 선택된 것만 표시 (즉시 전환!)
   document.querySelectorAll('.hs-progress-table').forEach(el=>{
     el.style.display = (el.dataset.progress === progressName) ? 'block' : 'none';
@@ -1893,6 +1892,12 @@ function switchHsProgress(progressName){
   document.querySelectorAll('.prev-pill').forEach(btn=>{
     btn.classList.toggle('active', btn.dataset.progress === progressName);
   });
+  
+  // Firebase 저장은 지연 (UI 먼저 갱신)
+  hsLastSelections[hsCurrentSchool] = {area:hsCurrentArea, progress:progressName};
+  setTimeout(()=>{
+    fbSet('settings/hsLastSelections', hsLastSelections);
+  }, 50);
 }
 
 // === Admin: 중등 학생 관리 ===
@@ -2368,7 +2373,11 @@ onValue(ref(db, settingsPath), (snap)=>{
   } else if(document.getElementById('main-content').style.display !== 'none'){
     // 이미 메인 화면이면 새로고침
     if(currentPage==='main') renderGrid();
-    if(currentPage==='highschool') renderHsList();
+    if(currentPage==='highschool'){
+      // 학교 안에 있으면 학교 화면 유지, 아니면 학교 목록
+      if(hsCurrentSchool) renderHsDetail();
+      else renderHsList();
+    }
     if(currentPage==='admin'){
       if(adminTab==='students'){renderAdminClassTabs();renderAdminContent();}
       else if(adminTab==='hs-students'){renderAdminHsClassTabs();renderAdminHsContent();}
