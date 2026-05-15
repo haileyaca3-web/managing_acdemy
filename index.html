@@ -1763,10 +1763,7 @@ function renderHsDetail(){
   prevRow.innerHTML = prevHtml;
   
   prevRow.querySelectorAll('.prev-pill:not(.more)').forEach(btn=>btn.addEventListener('click',()=>{
-    hsCurrentProgress = btn.dataset.progress;
-    hsLastSelections[hsCurrentSchool] = {area:hsCurrentArea, progress:hsCurrentProgress};
-    fbSet('settings/hsLastSelections', hsLastSelections);
-    renderHsDetail();
+    switchHsProgress(btn.dataset.progress);  // 빠른 전환 (다시 안 그림)
   }));
   
   const moreBtn = document.getElementById('hs-btn-more');
@@ -1797,9 +1794,8 @@ function renderHsMoreList(items){
   box.style.display='block';
   document.getElementById('hs-btn-close-more').addEventListener('click',()=>box.style.display='none');
   box.querySelectorAll('.prev-row-btn').forEach(btn=>btn.addEventListener('click',()=>{
-    hsCurrentProgress = btn.dataset.progress;
+    switchHsProgress(btn.dataset.progress);
     box.style.display='none';
-    renderHsDetail();
   }));
 }
 
@@ -1810,51 +1806,93 @@ function renderHsTable(){
     container.innerHTML = `<div style="padding:2rem;text-align:center;color:var(--text-tertiary);font-size:13px">위에 진도 이름을 입력하고 "새 진도 시작"을 눌러주세요.</div>`;
     return;
   }
-  const progressData = ((((hsData[hsCurrentSchool]||{})[hsCurrentArea])||{})[hsCurrentProgress]||{}).students||{};
-  let html = '<table class="check-table"><thead><tr>';
-  html += '<th rowspan="2" class="th-name">학생</th>';
-  HS_GROUPS.forEach(g=>{
-    html += `<th colspan="${g.cols}" class="th-group" style="background:${g.bg};color:${g.text}">${g.label}</th>`;
-  });
-  html += '<th class="th-group" style="background:#FAECE7;color:#712B13">메모</th></tr><tr>';
-  HS_CHECK_COLS.forEach(c=>{html+=`<th class="th-sub">${c.label}</th>`;});
-  html += '<th class="th-sub">기타</th></tr></thead><tbody>';
-  if(students.length===0){
-    html += `<tr><td colspan="${HS_CHECK_COLS.length+2}" style="padding:20px;text-align:center;color:var(--text-tertiary);font-size:12px">학생이 없습니다. Admin에서 추가하세요.</td></tr>`;
-  } else {
-    students.forEach(name=>{
-      const sd = progressData[name]||{};
-      html += `<tr><td class="td-name">${escapeHtml(name)}</td>`;
-      HS_CHECK_COLS.forEach(c=>{
-        const done = sd[c.key];
-        html += `<td><span class="check ${done?'done':''}" data-student="${escapeHtml(name)}" data-col="${c.key}">${done?'<i class="ti ti-check"></i>':''}</span></td>`;
-      });
-      const memo = sd.memo||'';
-      html += `<td class="td-memo" data-student="${escapeHtml(name)}">${escapeHtml(memo)||'<span style="color:var(--text-tertiary);font-style:italic">클릭</span>'}</td></tr>`;
+  
+  // ★ 모든 진도 표를 한 번에 그려놓고, 현재 진도만 보이게 (스프레드시트 탭 방식)
+  const areaData = ((hsData[hsCurrentSchool]||{})[hsCurrentArea])||{};
+  const allProgresses = Object.keys(areaData).sort((a,b)=>(areaData[b].createdAt||0)-(areaData[a].createdAt||0));
+  
+  function buildTableHtml(progressName, isActive){
+    const progressData = (areaData[progressName]||{}).students||{};
+    let html = `<div class="hs-progress-table" data-progress="${escapeHtml(progressName)}" style="display:${isActive?'block':'none'}">`;
+    html += '<table class="check-table"><thead><tr>';
+    html += '<th rowspan="2" class="th-name">학생</th>';
+    HS_GROUPS.forEach(g=>{
+      html += `<th colspan="${g.cols}" class="th-group" style="background:${g.bg};color:${g.text}">${g.label}</th>`;
     });
+    html += '<th class="th-group" style="background:#FAECE7;color:#712B13">메모</th></tr><tr>';
+    HS_CHECK_COLS.forEach(c=>{html+=`<th class="th-sub">${c.label}</th>`;});
+    html += '<th class="th-sub">기타</th></tr></thead><tbody>';
+    if(students.length===0){
+      html += `<tr><td colspan="${HS_CHECK_COLS.length+2}" style="padding:20px;text-align:center;color:var(--text-tertiary);font-size:12px">학생이 없습니다. Admin에서 추가하세요.</td></tr>`;
+    } else {
+      students.forEach(name=>{
+        const sd = progressData[name]||{};
+        html += `<tr><td class="td-name">${escapeHtml(name)}</td>`;
+        HS_CHECK_COLS.forEach(c=>{
+          const done = sd[c.key];
+          html += `<td><span class="check ${done?'done':''}" data-progress="${escapeHtml(progressName)}" data-student="${escapeHtml(name)}" data-col="${c.key}">${done?'<i class="ti ti-check"></i>':''}</span></td>`;
+        });
+        const memo = sd.memo||'';
+        html += `<td class="td-memo" data-progress="${escapeHtml(progressName)}" data-student="${escapeHtml(name)}">${escapeHtml(memo)||'<span style="color:var(--text-tertiary);font-style:italic">클릭</span>'}</td></tr>`;
+      });
+    }
+    html += '</tbody></table></div>';
+    return html;
   }
-  html += '</tbody></table>';
-  container.innerHTML = html;
+  
+  let allHtml = '';
+  allProgresses.forEach(p => {
+    allHtml += buildTableHtml(p, p === hsCurrentProgress);
+  });
+  container.innerHTML = allHtml;
+  
+  // 체크 클릭
   container.querySelectorAll('.check').forEach(el=>el.addEventListener('click',()=>{
+    const progressName = el.dataset.progress;
     const student = el.dataset.student;
     const col = el.dataset.col;
-    const cur = (((((hsData[hsCurrentSchool]||{})[hsCurrentArea])||{})[hsCurrentProgress]||{}).students||{})[student]?.[col] || false;
+    const cur = (((((hsData[hsCurrentSchool]||{})[hsCurrentArea])||{})[progressName]||{}).students||{})[student]?.[col] || false;
     const newVal = !cur;
-    fbSet(`highschool/${hsCurrentSchool}/${hsCurrentArea}/${hsCurrentProgress}/students/${student}/${col}`, newVal);
-    // 시트에도 동기화
-    syncToSheet(hsCurrentSchool, hsCurrentArea, hsCurrentProgress, student, col, newVal);
+    fbSet(`highschool/${hsCurrentSchool}/${hsCurrentArea}/${progressName}/students/${student}/${col}`, newVal);
+    syncToSheet(hsCurrentSchool, hsCurrentArea, progressName, student, col, newVal);
   }));
-  container.querySelectorAll('.td-memo').forEach(el=>el.addEventListener('click',()=>{
+  
+  // 메모 클릭
+  container.querySelectorAll('.td-memo').forEach(el=>el.addEventListener('click', async ()=>{
+    const progressName = el.dataset.progress;
     const student = el.dataset.student;
-    const cm = (((((hsData[hsCurrentSchool]||{})[hsCurrentArea])||{})[hsCurrentProgress]||{}).students||{})[student]?.memo || '';
-    const next = prompt(`${student} 학생 메모:`, cm);
-    if(next!==null){
-      const trimmed = next.trim();
-      fbSet(`highschool/${hsCurrentSchool}/${hsCurrentArea}/${hsCurrentProgress}/students/${student}/memo`, trimmed);
-      // 시트에도 동기화
-      syncToSheet(hsCurrentSchool, hsCurrentArea, hsCurrentProgress, student, 'memo', trimmed);
-    }
+    const cm = (((((hsData[hsCurrentSchool]||{})[hsCurrentArea])||{})[progressName]||{}).students||{})[student]?.memo || '';
+    const result = await showInputModal({
+      title: `${student} 메모`,
+      subtitle: `${progressName} 진도`,
+      fields:[{name:'memo', value:cm, placeholder:'메모 입력'}],
+      okLabel:'저장',
+      canDelete: !!cm
+    });
+    if(result.action === 'cancel') return;
+    const trimmed = result.action === 'delete' ? '' : (result.values.memo||'').trim();
+    fbSet(`highschool/${hsCurrentSchool}/${hsCurrentArea}/${progressName}/students/${student}/memo`, trimmed);
+    syncToSheet(hsCurrentSchool, hsCurrentArea, progressName, student, 'memo', trimmed);
   }));
+}
+
+// 진도 탭 빠른 전환 (display 토글, 다시 그리지 않음)
+function switchHsProgress(progressName){
+  hsCurrentProgress = progressName;
+  hsLastSelections[hsCurrentSchool] = {area:hsCurrentArea, progress:progressName};
+  fbSet('settings/hsLastSelections', hsLastSelections);
+  
+  // 모든 표 숨기고 선택된 것만 표시 (즉시 전환!)
+  document.querySelectorAll('.hs-progress-table').forEach(el=>{
+    el.style.display = (el.dataset.progress === progressName) ? 'block' : 'none';
+  });
+  
+  // 진도 입력칸 + 활성 pill 업데이트
+  const inputEl = document.getElementById('hs-progress-input');
+  if(inputEl) inputEl.value = progressName;
+  document.querySelectorAll('.prev-pill').forEach(btn=>{
+    btn.classList.toggle('active', btn.dataset.progress === progressName);
+  });
 }
 
 // === Admin: 중등 학생 관리 ===
