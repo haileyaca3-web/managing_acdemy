@@ -309,7 +309,12 @@ table.schedule{border-collapse:collapse;width:100%;min-width:760px;font-size:13p
   <span id="connect-status" class="connect-status offline"><i class="ti ti-wifi-off"></i> 연결 중</span>
 </div>
 
-<p style="font-size:15px;color:var(--text-secondary);margin:0 0 12px" id="week-label">이번 주</p>
+<div style="display:flex;align-items:center;gap:10px;margin:0 0 12px">
+  <button type="button" id="week-prev" style="padding:6px 12px;background:var(--bg-primary);border:1px solid var(--border-secondary);border-radius:var(--radius-md);cursor:pointer;font-size:13px;color:var(--text-primary)"><i class="ti ti-chevron-left"></i> 이전</button>
+  <p style="font-size:15px;color:var(--text-secondary);margin:0;flex:1" id="week-label">이번 주</p>
+  <button type="button" id="week-next" style="padding:6px 12px;background:var(--bg-primary);border:1px solid var(--border-secondary);border-radius:var(--radius-md);cursor:pointer;font-size:13px;color:var(--text-primary)">다음 <i class="ti ti-chevron-right"></i></button>
+  <button type="button" id="week-today" style="padding:6px 12px;background:var(--text-info);color:white;border:none;border-radius:var(--radius-md);cursor:pointer;font-size:13px;display:none" title="이번 주로 돌아가기">오늘</button>
+</div>
 
 <div class="who-am-i">
   <span style="color:var(--text-tertiary)">로그인:</span>
@@ -1002,26 +1007,42 @@ function rebuildIds(){
 }
 rebuildIds();
 
-function getMonday(){
+function getMonday(offsetWeeks){
+  offsetWeeks = offsetWeeks || 0;
   const now=new Date();const m=new Date(now);const day=now.getDay();
   const diff=day===0?-6:1-day;
-  m.setDate(now.getDate()+diff);m.setHours(0,0,0,0);return m;
+  m.setDate(now.getDate()+diff + (offsetWeeks * 7));
+  m.setHours(0,0,0,0);
+  return m;
 }
 function getWeekKey(monday){
   return `${monday.getFullYear()}-${String(monday.getMonth()+1).padStart(2,'0')}-${String(monday.getDate()).padStart(2,'0')}`;
 }
-const monday = getMonday();
-const weekKey = getWeekKey(monday);
-const dayDates = {};
-DAYS.forEach((d,i)=>{
-  const dt=new Date(monday);dt.setDate(monday.getDate()+i);
-  dayDates[d]={month:dt.getMonth()+1,day:dt.getDate(),idx:i};
-});
 
-function getTodayDayIdx(){const today=new Date();const wd=today.getDay();if(wd===0||wd===6)return null;return wd-1;}
-const todayDayIdx = getTodayDayIdx();
+// 주차 오프셋 (0=이번 주, -1=지난 주, +1=다음 주)
+let weekOffset = 0;
+let monday = getMonday(weekOffset);
+let weekKey = getWeekKey(monday);
+let dayDates = {};
+function rebuildDayDates(){
+  dayDates = {};
+  DAYS.forEach((d,i)=>{
+    const dt=new Date(monday);dt.setDate(monday.getDate()+i);
+    dayDates[d]={month:dt.getMonth()+1,day:dt.getDate(),idx:i};
+  });
+}
+rebuildDayDates();
 
-const dataPath = `weeks/${weekKey}`;
+function getTodayDayIdx(){
+  // 이번 주 보고 있을 때만 오늘 표시
+  if(weekOffset !== 0) return null;
+  const today=new Date();const wd=today.getDay();
+  if(wd===0||wd===6)return null;
+  return wd-1;
+}
+let todayDayIdx = getTodayDayIdx();
+
+let dataPath = `weeks/${weekKey}`;
 const settingsPath = 'settings';
 
 function fbSet(path,value){set(ref(db,path),value).catch(e=>console.error('FB set:',e));}
@@ -1094,6 +1115,78 @@ window.doLogout = function(){
 function showLogin(){
   document.getElementById('login-screen').style.display = 'block';
   document.getElementById('main-content').style.display = 'none';
+}
+
+// 주차 이동
+function changeWeek(offset){
+  weekOffset = offset;
+  monday = getMonday(weekOffset);
+  weekKey = getWeekKey(monday);
+  dataPath = `weeks/${weekKey}`;
+  rebuildDayDates();
+  todayDayIdx = getTodayDayIdx();
+  
+  // week-label 업데이트
+  updateWeekLabel();
+  
+  // 새 dataPath로 데이터 다시 구독
+  resubscribeData();
+  
+  // 화면 다시 그리기
+  if(currentPage === 'main') renderGrid();
+}
+
+function updateWeekLabel(){
+  const labelEl = document.getElementById('week-label');
+  if(!labelEl) return;
+  const sun = new Date(monday); sun.setDate(monday.getDate()+4);
+  const dateRange = `${monday.getMonth()+1}/${monday.getDate()} - ${sun.getMonth()+1}/${sun.getDate()}`;
+  let txt = '';
+  if(weekOffset === 0){
+    const todayNames = ['일','월','화','수','목','금','토'];
+    const todayKr = todayNames[new Date().getDay()];
+    txt = `${dateRange} · 이번 주 (오늘 ${todayKr}요일)`;
+  } else if(weekOffset === -1){
+    txt = `${dateRange} · 지난 주`;
+  } else if(weekOffset === 1){
+    txt = `${dateRange} · 다음 주`;
+  } else if(weekOffset < 0){
+    txt = `${dateRange} · ${-weekOffset}주 전`;
+  } else {
+    txt = `${dateRange} · ${weekOffset}주 후`;
+  }
+  labelEl.textContent = txt;
+  
+  // "오늘" 버튼은 이번 주 아닐 때만 표시
+  const todayBtn = document.getElementById('week-today');
+  if(todayBtn) todayBtn.style.display = weekOffset !== 0 ? 'inline-block' : 'none';
+}
+
+// onValue 구독 핸들 저장
+let dataUnsubscribe = null;
+function resubscribeData(){
+  if(dataUnsubscribe) {
+    try { dataUnsubscribe(); } catch(e){}
+  }
+  dataUnsubscribe = onValue(ref(db, dataPath), (snap)=>{
+    const data = snap.val()||{};
+    memos = data.memos||{};
+    todos = data.todos||{};
+    notice = data.notice||'';
+    mgrNoteEden = normalizeMgrNote(data.mgrNoteEden);
+    mgrNoteElla = normalizeMgrNote(data.mgrNoteElla);
+    mgrNoteBianca = normalizeMgrNote(data.mgrNoteBianca);
+    mgrNoteHailey = normalizeMgrNote(data.mgrNoteHailey);
+    document.getElementById('notice-text').textContent = notice || '공지사항이 없습니다.';
+    renderMgrNoteList('eden', mgrNoteEden);
+    renderMgrNoteList('ella', mgrNoteElla);
+    renderMgrNoteList('bianca', mgrNoteBianca);
+    renderMgrNoteList('hailey', mgrNoteHailey);
+    if(document.getElementById('main-content').style.display !== 'none'){
+      renderGrid();
+      if(selectedCell) renderInputPanel();
+    }
+  });
 }
 
 function showMain(){
@@ -2417,6 +2510,11 @@ onValue(ref(db, 'highschool'), (snap)=>{
 });
 
 // === 이벤트 핸들러 등록 ===
+document.getElementById('week-prev').addEventListener('click', ()=>changeWeek(weekOffset - 1));
+document.getElementById('week-next').addEventListener('click', ()=>changeWeek(weekOffset + 1));
+document.getElementById('week-today').addEventListener('click', ()=>changeWeek(0));
+updateWeekLabel();
+
 document.getElementById('login-btn').addEventListener('click', window.doLogin);
 document.getElementById('login-pw').addEventListener('keydown',e=>{if(e.key==='Enter')window.doLogin();});
 document.getElementById('btn-logout').addEventListener('click', window.doLogout);
