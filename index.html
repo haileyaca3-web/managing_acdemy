@@ -314,6 +314,7 @@ table.schedule{border-collapse:collapse;width:100%;min-width:760px;font-size:13p
   <p style="font-size:15px;color:var(--text-secondary);margin:0;flex:1" id="week-label">이번 주</p>
   <button type="button" id="week-next" style="padding:6px 12px;background:var(--bg-primary);border:1px solid var(--border-secondary);border-radius:var(--radius-md);cursor:pointer;font-size:13px;color:var(--text-primary)">다음 <i class="ti ti-chevron-right"></i></button>
   <button type="button" id="week-today" style="padding:6px 12px;background:var(--text-info);color:white;border:none;border-radius:var(--radius-md);cursor:pointer;font-size:13px;display:none" title="이번 주로 돌아가기">오늘</button>
+  <button type="button" id="week-override-btn" style="padding:6px 12px;background:var(--bg-primary);border:1px solid var(--text-info);border-radius:var(--radius-md);cursor:pointer;font-size:13px;color:var(--text-info)" title="이 주만 수업 시간을 다르게 설정 (공휴일 등). 반은 그대로 유지"><i class="ti ti-clock-edit"></i> 이 주만 시간 변경</button>
 </div>
 
 <div class="who-am-i">
@@ -486,6 +487,7 @@ table.schedule{border-collapse:collapse;width:100%;min-width:760px;font-size:13p
   </div>
 
   <div id="admin-schedule" style="display:none">
+    <div id="admin-schedule-notice"></div>
     <div style="background:var(--bg-info);border-radius:var(--radius-md);padding:10px 12px;margin-bottom:12px;font-size:13px;color:var(--text-info);line-height:1.6">
       <i class="ti ti-info-circle"></i> <b>시간표 편집 안내</b><br>
       · <b>빈 셀 (+) 클릭</b> → 수업 추가<br>
@@ -631,6 +633,7 @@ const USERS = {
 
 // === 상태 변수 ===
 let TIME_SLOTS = [...TIME_SLOTS_DEFAULT];
+let BASE_TIME_SLOTS = [...TIME_SLOTS_DEFAULT]; // 기본 시간 (override 없을 때 사용)
 let SCHEDULE_ROWS = JSON.parse(JSON.stringify(SCHEDULE_DEFAULT));
 let studentsByLabel = JSON.parse(JSON.stringify(STUDENTS_DEFAULT));
 let hsStudents = JSON.parse(JSON.stringify(HS_STUDENTS_DEFAULT));
@@ -980,6 +983,14 @@ function normalizeTimeSlots(data){
   return keys.map(k => data[k]);
 }
 
+// 현재 주의 시간 (override 있으면 그거, 없으면 기본)
+function getActiveTimeSlots(){
+  return weekTimeSlotsOverride || TIME_SLOTS;
+}
+function hasTimeOverride(){
+  return weekTimeSlotsOverride !== null;
+}
+
 function rebuildIds(){
   // 안전장치: SCHEDULE_ROWS가 배열이 아니거나 row가 배열이 아니면 정규화
   if(!Array.isArray(SCHEDULE_ROWS)){
@@ -1020,6 +1031,8 @@ function getWeekKey(monday){
 }
 
 // 주차 오프셋 (0=이번 주, -1=지난 주, +1=다음 주)
+// 주별 시간 override (이 주만 특별, 반은 공용)
+let weekTimeSlotsOverride = null;
 let weekOffset = 0;
 let monday = getMonday(weekOffset);
 let weekKey = getWeekKey(monday);
@@ -1045,7 +1058,14 @@ let todayDayIdx = getTodayDayIdx();
 let dataPath = `weeks/${weekKey}`;
 const settingsPath = 'settings';
 
-function fbSet(path,value){set(ref(db,path),value).catch(e=>console.error('FB set:',e));}
+function fbSet(path,value){
+  // 시간 override 모드면 settings/timeSlots → dataPath/timeSlotsOverride로 리다이렉트
+  // (단, schedule은 항상 settings에 저장 - 시간만 주별로 다름)
+  if(weekTimeSlotsOverride !== null && path === 'settings/timeSlots'){
+    path = `${dataPath}/timeSlotsOverride`;
+  }
+  set(ref(db,path),value).catch(e=>console.error('FB set:',e));
+}
 function fbUpdate(path,value){update(ref(db,path),value).catch(e=>console.error('FB update:',e));}
 function fbRemove(path){remove(ref(db,path)).catch(e=>console.error('FB remove:',e));}
 
@@ -1117,6 +1137,47 @@ function showLogin(){
   document.getElementById('main-content').style.display = 'none';
 }
 
+// 이 주만 시간 override 설정/해제
+async function toggleTimeOverride(){
+  if(hasTimeOverride()){
+    const ok = await showConfirm('이 주의 특별 시간 삭제', '기본 시간으로 돌아갑니다. 이 주에 변경한 시간이 모두 사라져요.');
+    if(!ok) return;
+    weekTimeSlotsOverride = null;
+    TIME_SLOTS = [...BASE_TIME_SLOTS];  // 기본 시간으로 복구
+    set(ref(db, `${dataPath}/timeSlotsOverride`), null).catch(()=>{});
+    updateOverrideButton();
+    renderHeader();
+    renderGrid();
+    if(currentPage === 'admin') renderEditSchedule();
+  } else {
+    // 기본 시간을 복사해서 override로 저장
+    const copyTimes = [...BASE_TIME_SLOTS];
+    weekTimeSlotsOverride = copyTimes;
+    set(ref(db, `${dataPath}/timeSlotsOverride`), copyTimes).catch(()=>{});
+    updateOverrideButton();
+    renderHeader();
+    renderGrid();
+    if(currentPage === 'admin') renderEditSchedule();
+    alert('이 주만 시간을 따로 설정할 수 있어요. Admin → 시간표에서 시간(3:00, 4:10 등)을 클릭해서 변경하세요. 반은 모든 주에서 같습니다.');
+  }
+}
+
+function updateOverrideButton(){
+  const btn = document.getElementById('week-override-btn');
+  if(!btn) return;
+  if(hasTimeOverride()){
+    btn.innerHTML = '<i class="ti ti-x"></i> 이 주 시간 원복';
+    btn.style.background = '#A32D2D';
+    btn.style.color = 'white';
+    btn.style.borderColor = '#A32D2D';
+  } else {
+    btn.innerHTML = '<i class="ti ti-clock-edit"></i> 이 주만 시간 변경';
+    btn.style.background = 'var(--bg-primary)';
+    btn.style.color = 'var(--text-info)';
+    btn.style.borderColor = 'var(--text-info)';
+  }
+}
+
 // 주차 이동
 function changeWeek(offset){
   weekOffset = offset;
@@ -1126,6 +1187,11 @@ function changeWeek(offset){
   rebuildDayDates();
   todayDayIdx = getTodayDayIdx();
   
+  // 새 주로 가니까 일단 기본 시간으로 복구 (override는 새 주 데이터 받으면 적용됨)
+  weekTimeSlotsOverride = null;
+  TIME_SLOTS = [...BASE_TIME_SLOTS];
+  updateOverrideButton();
+  
   // week-label 업데이트
   updateWeekLabel();
   
@@ -1133,7 +1199,10 @@ function changeWeek(offset){
   resubscribeData();
   
   // 화면 다시 그리기
-  if(currentPage === 'main') renderGrid();
+  if(currentPage === 'main'){
+    renderHeader();  // ★ 날짜 헤더도 다시 그리기
+    renderGrid();
+  }
 }
 
 function updateWeekLabel(){
@@ -1177,12 +1246,25 @@ function resubscribeData(){
     mgrNoteElla = normalizeMgrNote(data.mgrNoteElla);
     mgrNoteBianca = normalizeMgrNote(data.mgrNoteBianca);
     mgrNoteHailey = normalizeMgrNote(data.mgrNoteHailey);
+    
+    // 주별 시간 override 로드 (반은 공용, 시간만 주별)
+    if(data.timeSlotsOverride){
+      weekTimeSlotsOverride = normalizeTimeSlots(data.timeSlotsOverride);
+    } else {
+      weekTimeSlotsOverride = null;
+    }
+    
     document.getElementById('notice-text').textContent = notice || '공지사항이 없습니다.';
     renderMgrNoteList('eden', mgrNoteEden);
     renderMgrNoteList('ella', mgrNoteElla);
     renderMgrNoteList('bianca', mgrNoteBianca);
     renderMgrNoteList('hailey', mgrNoteHailey);
+    
+    // override 버튼 표시 업데이트
+    updateOverrideButton();
+    
     if(document.getElementById('main-content').style.display !== 'none'){
+      renderHeader();
       renderGrid();
       if(selectedCell) renderInputPanel();
     }
@@ -1228,6 +1310,7 @@ function getOpenTodos(cellId){return Object.values(todos[cellId]||{}).filter(t=>
 
 function renderGrid(){
   const tbody = document.getElementById('schedule-body');
+  const ACTIVE_TIMES = getActiveTimeSlots();
   if(!SCHEDULE_ROWS || !Array.isArray(SCHEDULE_ROWS) || SCHEDULE_ROWS.length === 0){
     tbody.innerHTML = '<tr><td colspan="11" style="padding:30px;text-align:center;color:var(--text-tertiary);font-size:13px">시간표가 비어있습니다. Admin에서 추가하세요.</td></tr>';
     return;
@@ -1235,7 +1318,7 @@ function renderGrid(){
   let html='';
   SCHEDULE_ROWS.forEach((row,rIdx)=>{
     if(!Array.isArray(row)) row = Array(DAYS.length * 2).fill(null);
-    html+=`<tr><td class="time-cell">${TIME_SLOTS[rIdx]||''}</td>`;
+    html+=`<tr><td class="time-cell">${ACTIVE_TIMES[rIdx]||''}</td>`;
     row.forEach((cell,cIdx)=>{
       const dayIdx=Math.floor(cIdx/2);
       const isHCol=cIdx%2===0;
@@ -2122,6 +2205,16 @@ function renderAdminHsContent(){
 // === Admin: 시간표 ===
 function renderEditSchedule(){
   const tbody = document.getElementById('edit-schedule-body');
+  const isTimeOverride = hasTimeOverride();
+  
+  // 안내 표시는 메인 화면에 띄움 (Admin은 안 띄움)
+  const noticeEl = document.getElementById('admin-schedule-notice');
+  if(noticeEl) noticeEl.innerHTML = '';
+  
+  // 시간 override 있으면 TIME_SLOTS에 임시 할당 (편집 시간 셀이 override 사용)
+  if(isTimeOverride && weekTimeSlotsOverride && weekTimeSlotsOverride.length > 0){
+    TIME_SLOTS = weekTimeSlotsOverride;
+  }
   
   // 시간표가 비어있으면 기본 7행으로 자동 초기화
   if(!SCHEDULE_ROWS || SCHEDULE_ROWS.length === 0){
@@ -2134,7 +2227,7 @@ function renderEditSchedule(){
     }
     rebuildIds();
     fbSet('settings/schedule', SCHEDULE_ROWS);
-    fbSet('settings/timeSlots', TIME_SLOTS);
+    fbSet('settings/timeSlots', TIME_SLOTS);  // 자동으로 override 또는 settings로 라우팅됨
   }
   
   let html='';
@@ -2408,10 +2501,12 @@ onValue(ref(db, settingsPath), (snap)=>{
   
   const normalizedTimes = normalizeTimeSlots(data.timeSlots);
   if(normalizedTimes && normalizedTimes.length > 0){
-    TIME_SLOTS = normalizedTimes;
+    BASE_TIME_SLOTS = normalizedTimes;
+    TIME_SLOTS = hasTimeOverride() ? weekTimeSlotsOverride : normalizedTimes;
   } else {
-    TIME_SLOTS = [...TIME_SLOTS_DEFAULT];
-    fbSet('settings/timeSlots', TIME_SLOTS);
+    BASE_TIME_SLOTS = [...TIME_SLOTS_DEFAULT];
+    TIME_SLOTS = hasTimeOverride() ? weekTimeSlotsOverride : [...TIME_SLOTS_DEFAULT];
+    fbSet('settings/timeSlots', BASE_TIME_SLOTS);
   }
   
   // ★ schedule과 timeSlots 길이 맞추기 (불일치 시 큰 쪽에 맞춤)
@@ -2513,7 +2608,9 @@ onValue(ref(db, 'highschool'), (snap)=>{
 document.getElementById('week-prev').addEventListener('click', ()=>changeWeek(weekOffset - 1));
 document.getElementById('week-next').addEventListener('click', ()=>changeWeek(weekOffset + 1));
 document.getElementById('week-today').addEventListener('click', ()=>changeWeek(0));
+document.getElementById('week-override-btn').addEventListener('click', toggleTimeOverride);
 updateWeekLabel();
+updateOverrideButton();
 
 document.getElementById('login-btn').addEventListener('click', window.doLogin);
 document.getElementById('login-pw').addEventListener('keydown',e=>{if(e.key==='Enter')window.doLogin();});
