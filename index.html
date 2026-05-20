@@ -84,6 +84,16 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--text-inf
 
 .personal-memo-box{background:#E6F1FB;border:1px dashed #85B7EB;border-radius:var(--radius-lg);padding:14px 16px;margin-bottom:1rem}
 .personal-memo-text{font-size:15px;margin:0;line-height:1.6;white-space:pre-wrap;color:var(--text-primary);min-height:24px}
+.wi-student-block{margin-bottom:10px;padding-bottom:8px;border-bottom:0.5px solid rgba(180,83,9,0.15)}
+.wi-student-block:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0}
+.wi-student-name{font-weight:600;font-size:14px;color:var(--text-primary);margin-bottom:4px;display:flex;align-items:center;gap:6px}
+.wi-class-tag{font-size:11px;color:var(--text-tertiary);font-weight:400}
+.wi-issues{padding-left:8px}
+.wi-issue-item{display:flex;align-items:flex-start;gap:8px;padding:3px 0;font-size:13px;color:var(--text-secondary)}
+.wi-issue-text{flex:1;line-height:1.4}
+.wi-issue-del{background:transparent;border:none;cursor:pointer;color:var(--text-tertiary);padding:0;opacity:0.4;font-size:14px}
+.wi-issue-del:hover{opacity:1;color:#A32D2D}
+.wi-empty{font-size:13px;color:var(--text-tertiary);font-style:italic;margin:0;padding:4px 0}
 @media (prefers-color-scheme:dark){.personal-memo-box{background:#042C53;border-color:#85B7EB}.personal-memo-text{color:#e8e6dc}}
 
 .manager-row{display:flex;gap:8px;margin-bottom:1rem}
@@ -373,14 +383,13 @@ table.schedule{border-collapse:collapse;width:100%;min-width:760px;font-size:13p
     </div>
   </div>
 
-  <div class="personal-memo-box">
+  <div class="personal-memo-box" style="background:#FEF6E4;border:1px dashed #F4A261">
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-      <i class="ti ti-notebook" style="color:var(--text-info);font-size:18px"></i>
-      <p style="font-size:14px;font-weight:600;margin:0;color:var(--text-info)">내 메모장 <span id="memo-owner-label" style="color:var(--text-tertiary);font-weight:400;font-size:12px">(나만 보임)</span></p>
-      <button type="button" id="btn-edit-personal" class="mnote-edit-btn" style="margin-left:auto"><i class="ti ti-edit"></i> 수정</button>
-      <button type="button" id="btn-clear-personal" class="mnote-edit-btn" style="color:var(--text-danger)"><i class="ti ti-trash"></i></button>
+      <i class="ti ti-list-check" style="color:#B45309;font-size:18px"></i>
+      <p style="font-size:14px;font-weight:600;margin:0;color:#B45309">학생별 주간 이슈 <span id="weekly-issues-count" style="color:var(--text-tertiary);font-weight:400;font-size:12px"></span></p>
+      <span style="margin-left:auto;font-size:11px;color:var(--text-tertiary)">X 클릭 → 삭제</span>
     </div>
-    <p id="personal-memo-text" class="personal-memo-text">아직 메모가 없습니다.</p>
+    <div id="weekly-issues-list" style="max-height:260px;overflow-y:auto;padding-right:4px"></div>
   </div>
 
   <div style="overflow-x:auto;border:0.5px solid var(--border-tertiary);border-radius:var(--radius-md)">
@@ -670,6 +679,141 @@ let hsCurrentProgress = null;
 function escapeHtml(s){
   if(s==null) return '';
   return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// 학생별 주간 이슈 렌더링 - memos 데이터를 학생별로 모으기
+function renderWeeklyIssues(){
+  const listEl = document.getElementById('weekly-issues-list');
+  const countEl = document.getElementById('weekly-issues-count');
+  if(!listEl) return;
+  
+  // 모든 memos 순회하면서 학생별로 모으기
+  // memos 구조: {cellId: {memoId: {students:['김율아',...], detail:'단어 재시험', cat:'retest', sub:'독해단어', ...}}}
+  const studentIssues = {};  // {studentName: [{cellId, memoId, day, label, text}]}
+  
+  Object.keys(memos).forEach(cellId => {
+    const cellMemos = memos[cellId];
+    if(!cellMemos || typeof cellMemos !== 'object') return;
+    
+    // 셀 정보 (요일/시간/반)
+    const cell = findCell(cellId);
+    if(!cell) return;
+    const dayIdx = Math.floor(cell.col / 2);
+    const dayKo = DAY_KO[dayIdx+1] || '';
+    const dateInfo = dayDates[DAYS[dayIdx]];
+    const dateStr = dateInfo ? `${dateInfo.month}/${dateInfo.day}` : '';
+    
+    Object.keys(cellMemos).forEach(memoId => {
+      const m = cellMemos[memoId];
+      if(!m || !m.students || m.students.length === 0) return;
+      
+      // 텍스트 만들기 (카테고리/세부/디테일 조합)
+      let text = '';
+      if(m.cat === 'retest'){
+        text = `재시험 (${m.sub || ''})`;
+        if(m.detail) text += ` - ${m.detail}`;
+      } else if(m.cat === 'homework'){
+        text = `숙제 미완 (${m.sub || ''})`;
+        if(m.detail) text += ` - ${m.detail}`;
+      } else if(m.cat === 'absent'){
+        text = m.sub || '결석';
+        if(m.detail) text += ` - ${m.detail}`;
+      } else if(m.cat === 'vocab'){
+        text = `단어 ${m.detail || ''}`;
+      } else if(m.cat === 'etc'){
+        text = m.detail || '기타';
+      } else {
+        text = m.detail || m.sub || '이슈';
+      }
+      
+      m.students.forEach(studentName => {
+        if(!studentIssues[studentName]) studentIssues[studentName] = [];
+        studentIssues[studentName].push({
+          cellId, memoId,
+          dayKo, dateStr,
+          className: cell.label || '',
+          text
+        });
+      });
+    });
+  });
+  
+  // 학생 이름 정렬 (반 순서로)
+  const sortedStudents = Object.keys(studentIssues).sort((a, b)=>{
+    // 학생이 속한 반 찾기
+    const findClass = (name)=>{
+      for(const cls in studentsByLabel){
+        if((studentsByLabel[cls]||[]).includes(name)) return cls;
+      }
+      return 'zzz';
+    };
+    const ca = findClass(a);
+    const cb = findClass(b);
+    if(ca !== cb) return ca.localeCompare(cb);
+    return a.localeCompare(b);
+  });
+  
+  // 카운트 표시
+  const totalIssues = Object.values(studentIssues).reduce((s,arr)=>s+arr.length, 0);
+  if(countEl){
+    countEl.textContent = sortedStudents.length > 0 ? `(${sortedStudents.length}명 · ${totalIssues}건)` : '';
+  }
+  
+  if(sortedStudents.length === 0){
+    listEl.innerHTML = '<p class="wi-empty">이번 주 학생 이슈가 없습니다. 시간표 셀을 클릭해서 이슈를 추가하세요.</p>';
+    return;
+  }
+  
+  // 학생별 블록 렌더링
+  let html = '';
+  sortedStudents.forEach(name => {
+    // 반 찾기
+    let className = '';
+    for(const cls in studentsByLabel){
+      if((studentsByLabel[cls]||[]).includes(name)){
+        className = cls;
+        break;
+      }
+    }
+    
+    html += `<div class="wi-student-block">
+<div class="wi-student-name">${escapeHtml(name)} <span class="wi-class-tag">${escapeHtml(className)}</span></div>
+<div class="wi-issues">`;
+    
+    studentIssues[name].forEach(iss => {
+      html += `<div class="wi-issue-item">
+<span class="wi-issue-text">· ${iss.dayKo}(${iss.dateStr}) ${escapeHtml(iss.className)} - ${escapeHtml(iss.text)}</span>
+<button type="button" class="wi-issue-del" data-cell="${escapeHtml(iss.cellId)}" data-memo="${escapeHtml(iss.memoId)}" data-student="${escapeHtml(name)}" title="이 학생의 이 이슈 삭제"><i class="ti ti-x"></i></button>
+</div>`;
+    });
+    
+    html += '</div></div>';
+  });
+  
+  listEl.innerHTML = html;
+  
+  // X 버튼 클릭 이벤트
+  listEl.querySelectorAll('.wi-issue-del').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const cellId = btn.dataset.cell;
+      const memoId = btn.dataset.memo;
+      const student = btn.dataset.student;
+      const ok = await showConfirm('이 이슈 삭제?', `${student}의 이슈를 삭제할까요?`);
+      if(!ok) return;
+      
+      // memo의 students 배열에서 해당 학생 제거
+      const memo = (memos[cellId]||{})[memoId];
+      if(!memo) return;
+      const newStudents = (memo.students||[]).filter(s=>s!==student);
+      
+      if(newStudents.length === 0){
+        // 학생이 한 명도 안 남으면 memo 자체 삭제
+        fbRemove(`${dataPath}/memos/${cellId}/${memoId}`);
+      } else {
+        fbUpdate(`${dataPath}/memos/${cellId}/${memoId}`, {students: newStudents});
+      }
+    });
+  });
 }
 
 // 메시지를 항상 배열로 정규화
@@ -1266,6 +1410,7 @@ function resubscribeData(){
     if(document.getElementById('main-content').style.display !== 'none'){
       renderHeader();
       renderGrid();
+      renderWeeklyIssues();
       if(selectedCell) renderInputPanel();
     }
   });
@@ -1279,6 +1424,7 @@ function showMain(){
   setupWeekLabel();
   renderHeader();
   renderGrid();
+  renderWeeklyIssues();
 }
 
 // === 헤더 ===
@@ -2463,14 +2609,9 @@ function switchAdminTab(tab){
   else if(tab==='schedule') renderEditSchedule();
 }
 
-// === 개인 메모장 ===
-function getPersonalMemoKey(){return 'personalMemo_'+myName;}
+// === 개인 메모장 (제거됨 - 학생별 주간 이슈로 대체) ===
 function loadPersonalMemo(){
-  const txt = localStorage.getItem(getPersonalMemoKey())||'';
-  const el = document.getElementById('personal-memo-text');
-  if(el) el.textContent = txt || '아직 메모가 없습니다.';
-  const label = document.getElementById('memo-owner-label');
-  if(label) label.textContent = `(${myName}만 보임)`;
+  // 빈 함수 (호환성 유지)
 }
 
 // === Firebase 데이터 동기화 ===
@@ -2659,17 +2800,7 @@ document.querySelectorAll('.mnote-edit-btn[data-edit]').forEach(btn=>btn.addEven
   fbSet(`${dataPath}/${keys[who]}`, arr);
 }));
 
-document.getElementById('btn-edit-personal').addEventListener('click',()=>{
-  const cur = localStorage.getItem(getPersonalMemoKey())||'';
-  const next = prompt(`${myName}의 개인 메모:`, cur);
-  if(next!==null){localStorage.setItem(getPersonalMemoKey(), next);loadPersonalMemo();}
-});
-
-document.getElementById('btn-clear-personal').addEventListener('click',()=>{
-  if(!confirm('개인 메모를 모두 지울까요?'))return;
-  localStorage.removeItem(getPersonalMemoKey());
-  loadPersonalMemo();
-});
+// 개인 메모장 버튼 핸들러 (학생별 주간 이슈로 대체되어 제거됨)
 
 // 고등부 이벤트
 document.getElementById('hs-back').addEventListener('click', renderHsList);
