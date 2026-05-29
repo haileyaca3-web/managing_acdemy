@@ -1558,8 +1558,12 @@ function renderIssueTab(cell){
         const isSel = selectedSub===sub?'selected':'';
         html+=`<span class="sub-chip ${isSel}" data-sub="${escapeHtml(sub)}">${escapeHtml(sub)}</span>`;
       });
-      const otherSel = selectedSub==='기타'?'selected':'';
-      html+=`<span class="sub-chip ${otherSel}" data-sub="기타">기타</span></div>
+      // subs에 이미 '기타'가 있는 경우는 추가 안 함, 없는 경우만 추가
+      if(!t.subs.includes('기타')){
+        const otherSel = selectedSub==='기타'?'selected':'';
+        html+=`<span class="sub-chip ${otherSel}" data-sub="기타">기타</span>`;
+      }
+      html+=`</div>
 <div style="display:flex;gap:6px">
 <input type="text" id="custom-detail" placeholder="${selectedSub?selectedSub+' - 추가 내용':'세부 종류를 먼저 선택'}" style="flex:1" ${selectedSub?'':'disabled'} />
 <button type="button" id="btn-custom-add" style="padding:6px 12px;background:var(--bg-primary);border:0.5px solid var(--border-tertiary);border-radius:var(--radius-md);cursor:pointer;color:var(--text-primary)" ${selectedSub?'':'disabled'}>등록</button>
