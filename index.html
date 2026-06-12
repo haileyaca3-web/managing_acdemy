@@ -343,15 +343,6 @@ table.schedule{border-collapse:collapse;width:100%;min-width:760px;font-size:13p
 
 <!-- 중등부 페이지 -->
 <div id="page-main">
-  <div class="notice-box">
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-      <i class="ti ti-speakerphone" style="color:var(--text-info)"></i>
-      <p style="font-size:13px;font-weight:500;margin:0;color:var(--text-info)">전체 공지사항</p>
-      <button type="button" id="btn-edit-notice" class="mnote-edit-btn"><i class="ti ti-edit"></i> 수정</button>
-    </div>
-    <p id="notice-text" class="notice-text">공지사항이 없습니다.</p>
-  </div>
-
   <div class="mgr-notes-row" id="mgr-notes-row">
     <div class="mgr-note-box mgr-note-eden" data-mgr="Eden">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
@@ -383,13 +374,14 @@ table.schedule{border-collapse:collapse;width:100%;min-width:760px;font-size:13p
     </div>
   </div>
 
-  <div class="personal-memo-box" style="background:#FEF6E4;border:1px dashed #F4A261">
+  <div class="personal-memo-box" style="background:#E6F1FB;border:1px dashed #85B7EB;margin-bottom:1rem">
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-      <i class="ti ti-list-check" style="color:#B45309;font-size:18px"></i>
-      <p style="font-size:14px;font-weight:600;margin:0;color:#B45309">학생별 주간 이슈 <span id="weekly-issues-count" style="color:var(--text-tertiary);font-weight:400;font-size:12px"></span></p>
-      <span style="margin-left:auto;font-size:11px;color:var(--text-tertiary)">X 클릭 → 삭제</span>
+      <i class="ti ti-notebook" style="color:#0C447C;font-size:20px"></i>
+      <p style="font-size:15px;font-weight:600;margin:0;color:#0C447C">공용 메모장 <span style="color:var(--text-tertiary);font-weight:400;font-size:12px">(모든 선생님 공유)</span></p>
+      <button type="button" id="btn-edit-shared-memo" class="mnote-edit-btn" style="margin-left:auto"><i class="ti ti-edit"></i> 수정</button>
+      <button type="button" id="btn-clear-shared-memo" class="mnote-edit-btn" style="color:var(--text-danger)"><i class="ti ti-trash"></i></button>
     </div>
-    <div id="weekly-issues-list" style="max-height:260px;overflow-y:auto;padding-right:4px"></div>
+    <p id="shared-memo-text" style="font-size:14px;margin:0;line-height:1.7;white-space:pre-wrap;color:var(--text-primary);min-height:80px;max-height:300px;overflow-y:auto">아직 메모가 없습니다. 수정 버튼을 눌러 자유롭게 적어보세요.</p>
   </div>
 
   <div style="overflow-x:auto;border:0.5px solid var(--border-tertiary);border-radius:var(--radius-md)">
@@ -651,6 +643,7 @@ let hsLastSelections = {};
 let memos = {};
 let todos = {};
 let notice = '';
+let sharedMemo = '';
 let mgrNoteEden = [];
 let mgrNoteElla = [];
 let mgrNoteBianca = [];
@@ -954,7 +947,12 @@ function showInputModal(opts){
     
     let inputsHtml = '';
     fields.forEach((f,i)=>{
-      inputsHtml += `<input type="text" class="modal-input modal-field" data-name="${f.name}" placeholder="${escapeHtml(f.placeholder||'')}" value="${escapeHtml(f.value||'')}" />`;
+      if(f.multiline){
+        const rows = f.rows || 5;
+        inputsHtml += `<textarea class="modal-input modal-field" data-name="${f.name}" placeholder="${escapeHtml(f.placeholder||'')}" rows="${rows}" style="resize:vertical;min-height:120px;font-family:inherit;line-height:1.5">${escapeHtml(f.value||'')}</textarea>`;
+      } else {
+        inputsHtml += `<input type="text" class="modal-input modal-field" data-name="${f.name}" placeholder="${escapeHtml(f.placeholder||'')}" value="${escapeHtml(f.value||'')}" />`;
+      }
     });
     
     let btnsHtml = `<button type="button" class="modal-btn modal-btn-secondary" data-action="cancel">취소</button>`;
@@ -1390,6 +1388,8 @@ function resubscribeData(){
     mgrNoteElla = normalizeMgrNote(data.mgrNoteElla);
     mgrNoteBianca = normalizeMgrNote(data.mgrNoteBianca);
     mgrNoteHailey = normalizeMgrNote(data.mgrNoteHailey);
+    sharedMemo = data.sharedMemo || '';
+    renderSharedMemo();
     
     // 주별 시간 override 로드 (반은 공용, 시간만 주별)
     if(data.timeSlotsOverride){
@@ -1398,7 +1398,7 @@ function resubscribeData(){
       weekTimeSlotsOverride = null;
     }
     
-    document.getElementById('notice-text').textContent = notice || '공지사항이 없습니다.';
+    const _noticeEl = document.getElementById('notice-text'); if(_noticeEl) _noticeEl.textContent = notice || '공지사항이 없습니다.';
     renderMgrNoteList('eden', mgrNoteEden);
     renderMgrNoteList('ella', mgrNoteElla);
     renderMgrNoteList('bianca', mgrNoteBianca);
@@ -2613,6 +2613,13 @@ function switchAdminTab(tab){
   else if(tab==='schedule') renderEditSchedule();
 }
 
+// 공용 메모장 렌더링
+function renderSharedMemo(){
+  const el = document.getElementById('shared-memo-text');
+  if(!el) return;
+  el.textContent = sharedMemo || '아직 메모가 없습니다. 수정 버튼을 눌러 자유롭게 적어보세요.';
+}
+
 // === 개인 메모장 (제거됨 - 학생별 주간 이슈로 대체) ===
 function loadPersonalMemo(){
   // 빈 함수 (호환성 유지)
@@ -2729,7 +2736,9 @@ onValue(ref(db, dataPath), (snap)=>{
   mgrNoteElla = normalizeMgrNote(data.mgrNoteElla);
   mgrNoteBianca = normalizeMgrNote(data.mgrNoteBianca);
   mgrNoteHailey = normalizeMgrNote(data.mgrNoteHailey);
-  document.getElementById('notice-text').textContent = notice || '공지사항이 없습니다.';
+  sharedMemo = data.sharedMemo || '';
+  renderSharedMemo();
+  const _noticeEl = document.getElementById('notice-text'); if(_noticeEl) _noticeEl.textContent = notice || '공지사항이 없습니다.';
   renderMgrNoteList('eden', mgrNoteEden);
   renderMgrNoteList('ella', mgrNoteElla);
   renderMgrNoteList('bianca', mgrNoteBianca);
@@ -2772,10 +2781,8 @@ document.querySelectorAll('.filter-chk').forEach(btn=>btn.addEventListener('clic
 
 document.getElementById('btn-copy-report').addEventListener('click', copyReport);
 
-document.getElementById('btn-edit-notice').addEventListener('click',()=>{
-  const next = prompt('전체 공지사항:', notice);
-  if(next!==null) fbSet(`${dataPath}/notice`, next);
-});
+// btn-edit-notice removed (notice box deleted)
+const _bnEl = document.getElementById('btn-edit-notice'); if(_bnEl) _bnEl.addEventListener('click', ()=>{});
 
 document.querySelectorAll('.mnote-edit-btn[data-edit]').forEach(btn=>btn.addEventListener('click', async ()=>{
   const who = btn.dataset.edit;
@@ -2804,7 +2811,28 @@ document.querySelectorAll('.mnote-edit-btn[data-edit]').forEach(btn=>btn.addEven
   fbSet(`${dataPath}/${keys[who]}`, arr);
 }));
 
-// 개인 메모장 버튼 핸들러 (학생별 주간 이슈로 대체되어 제거됨)
+// 공용 메모장 버튼 이벤트
+document.getElementById('btn-edit-shared-memo').addEventListener('click', async ()=>{
+  const result = await showInputModal({
+    title: '공용 메모장 수정',
+    subtitle: '모든 선생님이 보고 편집할 수 있어요',
+    fields:[{name:'memo', value:sharedMemo, placeholder:'자유롭게 메모를 적어보세요...', multiline:true, rows:8}],
+    okLabel:'저장'
+  });
+  if(result.action === 'cancel') return;
+  sharedMemo = (result.values.memo || '').trim();
+  fbSet('sharedMemo', sharedMemo);
+  renderSharedMemo();
+});
+
+document.getElementById('btn-clear-shared-memo').addEventListener('click', async ()=>{
+  if(!sharedMemo) return;
+  const ok = await showConfirm('공용 메모장 삭제', '메모장 내용을 모두 지울까요? 모든 선생님께 적용됩니다.');
+  if(!ok) return;
+  sharedMemo = '';
+  fbSet('sharedMemo', '');
+  renderSharedMemo();
+});
 
 // 고등부 이벤트
 document.getElementById('hs-back').addEventListener('click', renderHsList);
